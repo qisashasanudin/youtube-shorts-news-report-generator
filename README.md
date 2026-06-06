@@ -3,7 +3,7 @@
 Generates vertical YouTube Shorts news/report videos from a single trailer/reference URL,
 TTS narration, and burned-in captions.
 
-Primary supported runtime: WSL Ubuntu 24.04 with the project venv at `/root/mashbutton-venv`.
+Primary supported runtime: Windows with the project venv at `.venv`.
 
 ## Status
 
