@@ -8,32 +8,30 @@ environment, and compatibility boundaries for this repository.
 Goal: reproduce `python src/shorts_builder.py` exactly on a clean compatible system.
 
 ## 2. Canonical runtime
-- Primary runtime: WSL Ubuntu 24.04
-- Preferred venv: WSL `/root/mashbutton-venv`
-  - create: `python3 -m venv ~/mashbutton-venv`
-  - activate: `source ~/mashbutton-venv/bin/activate`
+
+- Primary runtime: Windows with the project venv at `.venv`
+  - create: `python -m venv .venv`
+  - activate: `.venv\Scripts\python.exe ...`
   - pip install from `src/scripts/requirements.txt` inside this venv
-- Windows native Python remains supported, but WSL + venv is the supported standard
+- The builder is intended to run from the repo root using the venv Python
 
 Host platform baseline
 
-- Host OS: Windows 10 as the Windows host
-- Project commands should be run from WSL for consistency
-- Long-running tools including ffmpeg, tesseract, and python pipelines should run in WSL
-- Encoding: UTF-8 is the default in WSL; no special `PYTHONUTF8` bootstrap is required there
-- WSL is the main container for this system, not an optional add-on
+- Host OS: Windows 10/11
+- Run commands from: PowerShell or cmd
+- Long-running tools including ffmpeg, tesseract, and python pipelines should run from the venv
+- Encoding: UTF-8 is the default on modern Windows
 
 ## 3. Python
 
 Runtime:
 - Windows native: Python 3.11.15 / 3.13 verified
-- WSL environment may provide Python 3.13
-- Invocation in Windows: `PYTHONUTF8=1 "/c/Python313/python.exe" ...`
-- Preferred venv-style isolation: optional but supported
+- Preferred venv-style isolation: use the project `.venv`
 
-TODO:
-- Pin exact Python micro versions and build hashes for full reproducibility
-- Add `pyproject.toml` or explicit `python==3.13.*` constraint in README
+Run:
+```bash
+.venv\Scripts\python.exe -m pip install -r src/scripts/requirements.txt
+```
 
 ## 4. Python dependencies
 
@@ -49,7 +47,7 @@ Current contents:
 
 Run:
 ```bash
-python -m pip install -r src/scripts/requirements.txt
+.venv\Scripts\python.exe -m pip install -r src/scripts/requirements.txt
 ```
 
 Known environment behavior:
@@ -136,7 +134,8 @@ TODO:
 
 - Install ffmpeg with libass/freetype/harfbuzz
 - Install Python 3.11+ or 3.13
-- `python -m pip install -r src/scripts/requirements.txt`
+- `python -m venv .venv`
+- `.venv\Scripts\python.exe -m pip install -r src/scripts/requirements.txt`
 - Clone repo, keep `assets/` intact
 - Run example one-shot build with a public YouTube trailer URL
 - Confirm `videos/TO_UPLOAD/*.mp4` exists
@@ -147,7 +146,6 @@ TODO:
 - Offline execution is not supported unless Piper paths and assets are packaged
 - Caption styling assumes Whoosh font; changing fonts may require caption template updates
 - Builds depend on stable YouTube access and Edge TTS availability
-- Subtitle burn behavior may differ between Windows and WSL ffmpeg builds
 
 ## 11. Maintenance/updates
 

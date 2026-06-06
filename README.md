@@ -70,19 +70,17 @@ videos/
 
 ## First-run setup
 
-From WSL in the repo root:
+From the repo root:
 
 ```bash
-python3 -m venv ~/mashbutton-venv
-source ~/mashbutton-venv/bin/activate
-pip install -r src/scripts/requirements.txt
+python -m venv .venv
+.venv\Scripts\python.exe -m pip install -r src/scripts/requirements.txt
 ```
 
-Run the builder from WSL:
+Run the builder from the repo root:
 
 ```bash
-source ~/mashbutton-venv/bin/activate
-python src/shorts_builder.py \
+.venv\Scripts\python.exe src/shorts_builder.py \
   --youtube "<YOUTUBE_URL>" \
   --title "<TITLE_TEXT>" \
   --subtitle "<NARRATOR_SCRIPT_TEXT>"

@@ -2,11 +2,10 @@
 """One-shot YouTube Shorts builder.
 
 Usage:
-    source /root/mashbutton-venv/bin/activate
-    python src/shorts_builder.py --youtube "<url>" --title "<TITLE>" --subtitle "<SCRIPT TEXT>"
+    .venv\Scripts\python.exe src/shorts_builder.py --youtube "<url>" --title "<TITLE>" --subtitle "<SCRIPT TEXT>"
 
-This script is designed to run from WSL with the project virtual environment.
-The built-in TTS fallback prefers the WSL venv Edge TTS binary when available.
+This script is designed to run from the repo root with the project virtual environment.
+The built-in TTS fallback prefers the venv Edge TTS binary when available.
 """
 from __future__ import annotations
 
@@ -223,7 +222,6 @@ def generate_voiceover(text: str, out: Path) -> float:
             REPO / ".venv/Scripts/edge-tts.exe",
             REPO / "venv/bin/edge-tts",
             REPO / ".venv/bin/edge-tts",
-            Path("/root/mashbutton-venv/bin/edge-tts"),
         ]
         for c in candidates:
             if c.exists():
