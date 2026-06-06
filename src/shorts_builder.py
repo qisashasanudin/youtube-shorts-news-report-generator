@@ -2,14 +2,11 @@
 """One-shot YouTube Shorts builder.
 
 Usage:
-    python shorts_builder.py --youtube "<url>" --title "<TITLE>" --subtitle "<SCRIPT TEXT>"
+    source /root/mashbutton-venv/bin/activate
+    python src/shorts_builder.py --youtube "<url>" --title "<TITLE>" --subtitle "<SCRIPT TEXT>"
 
-The script is self-contained and follows the proven Stuntman/Silent Hill pipeline:
-  1. Download trailer with yt-dlp
-  2. Generate TTS voiceover (Edge TTS)
-  3. Build segmented edit (6x5s random clips, fixed seed)
-  4. Render 720x1280 final with burned Whoosh ASS captions
-  5. Copy to TO_UPLOAD and verify
+This script is designed to run from WSL with the project virtual environment.
+The built-in TTS fallback prefers the WSL venv Edge TTS binary when available.
 """
 from __future__ import annotations
 
@@ -219,11 +216,14 @@ def generate_voiceover(text: str, out: Path) -> float:
     # Fallback: Edge TTS
     edge_tts = shutil.which("edge-tts")
     if edge_tts is None:
-        # Try common install locations
         candidates = [
+            REPO / "apps/edge-tts",
             REPO / "apps/edge-tts.exe",
             REPO / "venv/Scripts/edge-tts.exe",
             REPO / ".venv/Scripts/edge-tts.exe",
+            REPO / "venv/bin/edge-tts",
+            REPO / ".venv/bin/edge-tts",
+            Path("/root/mashbutton-venv/bin/edge-tts"),
         ]
         for c in candidates:
             if c.exists():
