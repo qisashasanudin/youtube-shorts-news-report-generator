@@ -7,13 +7,21 @@ environment, and compatibility boundaries for this repository.
 
 Goal: reproduce `python src/shorts_builder.py` exactly on a clean compatible system.
 
-## 2. Host platform baseline
+## 2. Canonical runtime
+- Primary runtime: WSL Ubuntu 24.04
+- Preferred venv: WSL `/root/mashbutton-venv`
+  - create: `python3 -m venv ~/mashbutton-venv`
+  - activate: `source ~/mashbutton-venv/bin/activate`
+  - pip install from `src/scripts/requirements.txt` inside this venv
+- Windows native Python remains supported, but WSL + venv is the supported standard
 
-- Host OS: Windows 10 (verified)
-- Run commands from: git bash / MSYS2 bash
-- Long-running tools: launch via bash shell, not PowerShell
-- Encoding: UTF-8 expected; set `PYTHONUTF8=1` when invoking the builder
-- WSL: supported for OCR/tesseract; not required for the normal build
+Host platform baseline
+
+- Host OS: Windows 10 as the Windows host
+- Project commands should be run from WSL for consistency
+- Long-running tools including ffmpeg, tesseract, and python pipelines should run in WSL
+- Encoding: UTF-8 is the default in WSL; no special `PYTHONUTF8` bootstrap is required there
+- WSL is the main container for this system, not an optional add-on
 
 ## 3. Python
 

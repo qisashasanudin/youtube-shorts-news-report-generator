@@ -3,6 +3,8 @@
 Generates vertical YouTube Shorts news/report videos from a single trailer/reference URL,
 TTS narration, and burned-in captions.
 
+Primary supported runtime: WSL Ubuntu 24.04 with the project venv at `/root/mashbutton-venv`.
+
 ## Status
 
 - Main entrypoint: `src/shorts_builder.py`
@@ -68,8 +70,22 @@ videos/
 
 ## First-run setup
 
+From WSL in the repo root:
+
 ```bash
-python -m pip install -r src/scripts/requirements.txt
+python3 -m venv ~/mashbutton-venv
+source ~/mashbutton-venv/bin/activate
+pip install -r src/scripts/requirements.txt
+```
+
+Run the builder from WSL:
+
+```bash
+source ~/mashbutton-venv/bin/activate
+python src/shorts_builder.py \
+  --youtube "<YOUTUBE_URL>" \
+  --title "<TITLE_TEXT>" \
+  --subtitle "<NARRATOR_SCRIPT_TEXT>"
 ```
 
 ## Privacy / artifact handling
