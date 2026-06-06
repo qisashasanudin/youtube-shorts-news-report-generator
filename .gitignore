@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+
+# Project assets / generated media
+output/
+output_tmp/
+render/
+TO_UPLOAD/
+
+# Assets source files (keep in repo, ignore large binaries unless needed)
+*.mp4
+*.mp3
+*.m4a
+*.mov
+*.avi
+*.srt
+*.vtt
+*.ass
+*.jpg
+*.jpeg
+*.png
+*.otf
+*.ttf
+*.wav
+*.aac
+
+# System
+.DS_Store
+Thumbs.db
