@@ -1,8 +1,0 @@
-file 'C:/Users/qthas/Programming/Belajar/YouTube/MashButtonGaming/videos/everything-announced-at-summer-game-fest-june-2026/clips/part_000.mp4'
-file 'C:/Users/qthas/Programming/Belajar/YouTube/MashButtonGaming/videos/everything-announced-at-summer-game-fest-june-2026/clips/part_001.mp4'
-file 'C:/Users/qthas/Programming/Belajar/YouTube/MashButtonGaming/videos/everything-announced-at-summer-game-fest-june-2026/clips/part_002.mp4'
-file 'C:/Users/qthas/Programming/Belajar/YouTube/MashButtonGaming/videos/everything-announced-at-summer-game-fest-june-2026/clips/part_003.mp4'
-file 'C:/Users/qthas/Programming/Belajar/YouTube/MashButtonGaming/videos/everything-announced-at-summer-game-fest-june-2026/clips/part_004.mp4'
-file 'C:/Users/qthas/Programming/Belajar/YouTube/MashButtonGaming/videos/everything-announced-at-summer-game-fest-june-2026/clips/part_005.mp4'
-file 'C:/Users/qthas/Programming/Belajar/YouTube/MashButtonGaming/videos/everything-announced-at-summer-game-fest-june-2026/clips/part_006.mp4'
-file 'C:/Users/qthas/Programming/Belajar/YouTube/MashButtonGaming/videos/everything-announced-at-summer-game-fest-june-2026/clips/part_007.mp4'
