@@ -9,6 +9,7 @@ output/
 output_tmp/
 render/
 TO_UPLOAD/
+videos/
 
 # Assets source files (keep in repo, ignore large binaries unless needed)
 *.mp4
