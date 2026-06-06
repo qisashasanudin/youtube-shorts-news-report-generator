@@ -1,15 +1,83 @@
-# MashButtonGaming
+# youtube-shorts-news-report-generator
 
-Vertical YouTube Shorts pipeline.
+Generates vertical YouTube Shorts news/report videos from a single trailer/reference URL,
+TTS narration, and burned-in captions.
 
-## Layout
-- `videos/<target>/news.yml` — one topic config per video
-- `videos/<target>/script.txt`
-- `videos/<target>/audio/`
-- `videos/<target>/captions/`
-- `videos/<target>/clips/`
-- `videos/<target>/render/`
-- `videos/TO_UPLOAD/` — completed uploads only
-- `scripts/` — engine + helpers
-- `assets/` — fonts, overlays
-- `logs/` — runtime artifacts
+## Status
+
+- Main entrypoint: `src/shorts_builder.py`
+- Default branch: `master`
+- Latest tested: gameplay/trailer URLs, movie trailer URLs, and YouTube trailer downloads
+- Known limitation: burned-in subtitle visibility has not been verified with automated
+  frame inspection. FFMpeg/subtitle pipeline works on many outputs, but this build
+  should still be treated as in validation.
+
+## What the one-shot build does
+
+Invocation:
+```bash
+python src/shorts_builder.py \
+  --youtube "<YOUTUBE_URL>" \
+  --title "<TITLE_TEXT>" \
+  --subtitle "<NARRATOR_SCRIPT_TEXT>"
+```
+
+Build steps:
+1. Download YouTube source with `yt-dlp`
+2. Generate TTS voiceover with Edge TTS
+3. Build shortened/cut edit from the source video
+4. Generate ASS captions aligned to the TTS
+5. Burn captions into the final vertical MP4
+6. Verify output file size + duration
+
+Final output:
+- `videos/TO_UPLOAD/<safe-title>.mp4`
+- Filename is sanitized automatically; unsafe characters become `-`
+- Title text remains intact in build logs / metadata
+
+## Constraints enforced by the builder
+
+- `--subtitle` text must be 100-200 words
+- Output filename is sanitized for filesystem safety
+- `assets/` content is loaded from repo-relative paths so caption font lookup is consistent
+
+## Repo layout
+
+Top-level:
+```text
+src/
+  scripts/
+    make_vtt.py
+    make_vtt_phrases.py
+    make_vtt_small.py
+    vtt_to_ass.py
+    build_final.py
+    render_now.py
+    main.py
+    requirements.txt
+  shorts_builder.py
+assets/
+  fonts/
+    whoosh/
+      Whoosh.otf
+      Whoosh.ttf
+videos/
+  <project>/         # working directories
+  TO_UPLOAD/         # completed video(s)
+```
+
+## First-run setup
+
+```bash
+python -m pip install -r src/scripts/requirements.txt
+```
+
+## Privacy / artifact handling
+
+- `videos/` is ignored in git
+- Final rendered video assets stay local in `videos/TO_UPLOAD/`
+- `assets/` is tracked in git
+
+## TSD changes
+
+See `TSD.md` for toolchain and compatibility notes.
