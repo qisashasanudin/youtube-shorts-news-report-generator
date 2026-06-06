@@ -39,6 +39,7 @@ except ImportError:  # pragma: no cover - optional dependency
 class MediaExtractionError(RuntimeError):
     pass
 
+
 # ---------------------------------------------------------------------------
 # Paths (relative to repo root)
 # ---------------------------------------------------------------------------
@@ -362,7 +363,7 @@ def generate_ass(
         "",
         "[V4+ Styles]",
         "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
-        "Style: Default,Whoosh,120,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,1,0,1,6,1.2,2,5,0,0,0,0",
+        "Style: Default,Whoosh,120,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,1,0,1,6,1.2,5,5,0,0,0,0",
         "",
         "[Events]",
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
@@ -372,7 +373,7 @@ def generate_ass(
         s = max(0.0, i * per_word)
         e = s + word_dur
         lines.append(
-            f"Dialogue: 0,{_ts(s)},{_ts(e)},Default,,,,,,{w.upper()}\r\n"
+            f"Dialogue: 0,{_ts(s)},{_ts(e)},Default,,,,,,{{\\an5}}{w.upper()}\r\n"
         )
 
     ass_path.parent.mkdir(parents=True, exist_ok=True)
@@ -497,77 +498,33 @@ def main() -> None:
     def _build_work_dir(title: str) -> Path:
         return SRC_VIDEOS / f"{_now_stamp()}_{_slugify(title)}"
 
-    def _safe_filename(text: str) -> str:
-        safe = "".join(c if (c.isalnum() or c in " -_") else "-" for c in text)
-        safe = safe.replace(" ", "-")
-        safe = "-".join(part for part in safe.split("-") if part)
-        return safe[:120]
-
-    def _clean_old_work_dirs() -> None:
-        if not SRC_VIDEOS.exists():
-            return
-        for child in SRC_VIDEOS.iterdir():
-            if child.is_dir() and child.name != "TO_UPLOAD":
-                shutil.rmtree(child, ignore_errors=True)
-
-    work = SRC_VIDEOS / _slugify(args.title)
-    clips_dir = work / "clips"
-    reordered = clips_dir / "reordered.mp4"
-    audio = work / "audio/voiceover.mp3"
-    ass = work / "captions/captions.ass"
-    font_dir = DEFAULT_FONT_DIR
-
-    if work.exists():
-        try:
-            shutil.rmtree(work)
-        except Exception:
-            # Work dir cleanup is best-effort; stale files can remain if locked.
-            pass
-    ensure_dir(work)
-    ensure_dir(TO_UPLOAD)
-
-    final_out = TO_UPLOAD / f"{_safe_filename(args.title)}.mp4"
-
+    work = _build_work_dir(args.title)
     print(f"[INFO] project={work}")
     print(f"[INFO] title={args.title}")
-
     print(f"[INFO] subtitle word count: {len(args.subtitle.split())}")
 
-    # 1) download / reuse trailer
-    trailer = clips_dir / "trailer_full.mp4"
-    if trailer.exists() and trailer.stat().st_size > 0:
-        trailer_meta = {
-            "skipped": True,
-            "path": str(trailer),
-            "duration": probe_duration(trailer),
-        }
-        print(f"[1/6] trailer already cached: {trailer}")
-    else:
-        trailer_meta = download_trailer(args.youtube, trailer)
-        if not trailer_meta.get("skipped"):
-            print(f"[1/6] downloaded trailer: {trailer}")
-    print(f"      source duration: {trailer_meta['duration']:.1f}s")
+    trailer_path = work / "clips" / "trailer_full.mp4"
+    voice_path = work / "audio" / "voiceover.mp3"
+    reordered_path = work / "clips" / "reordered.mp4"
+    ass_path = work / "captions" / "captions.ass"
+    final_path = TO_UPLOAD / f"{_slugify(args.title)}.mp4"
 
-    # 2) tts
-    print("[2/6] generating voiceover...")
-    audio_dur = generate_voiceover(args.subtitle, audio)
+    dl = download_trailer(args.youtube, trailer_path)
+    print(f"[1/6] downloaded trailer: {dl['path']}  source duration: {dl['duration']:.1f}s")
 
-    # 3) segmented edit
-    print("[3/6] building segmented edit...")
-    build_segmented_edit(trailer, clips_dir, reordered, audio_dur)
+    voice_dur = generate_voiceover(args.subtitle, voice_path)
+    print(f"[2/6] generating voiceover... duration={voice_dur:.2f}s")
 
-    # 4) captions
-    print("[4/6] generating captions...")
-    generate_ass(args.subtitle, audio_dur, ass)
+    build_segmented_edit(trailer_path, work / "clips", reordered_path, voice_dur)
+    print(f"[3/6] segmented edit ready")
 
-    # 5) render
-    print("[5/6] rendering final...")
-    render_final(work, reordered, audio, ass, font_dir, final_out)
+    generate_ass(args.subtitle, voice_dur, ass_path)
+    print(f"[4/6] generating captions...")
 
-    # 6) verify
-    print("[6/6] verifying final...")
-    verify(final_out)
+    render_final(work, reordered_path, voice_path, ass_path, DEFAULT_FONT_DIR, final_path)
+    print(f"[5/6] rendered final to {final_path}")
 
+    verify(final_path)
     print("[DONE]")
 
 
