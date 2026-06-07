@@ -68,11 +68,11 @@ def download_trailer(url: str, dest: Path) -> dict:
         {"format": "bestvideo[ext=mp4][height>=1080]+bestaudio[ext=m4a]/best[ext=mp4][height>=1080]"},
         {
             "format": "bestvideo[ext=mp4][height>=1080]+bestaudio[ext=m4a]/best[ext=mp4][height>=1080]/best[ext=mp4]/best",
-            "extractor_args": {"youtube": {"player_client": ["android"]}},
+            "extractor_args": {"youtube": {"player_client": ["web"]}},
         },
         {
             "format": "bestvideo[ext=mp4][height>=1080]+bestaudio[ext=m4a]/best[ext=mp4][height>=1080]/best[ext=mp4]/best",
-            "extractor_args": {"youtube": {"player_client": ["web"]}},
+            "extractor_args": {"youtube": {"player_client": ["android"]}},
         },
         {"format": "best"},
     ]
