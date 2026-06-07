@@ -46,10 +46,10 @@ def probe_duration(path: Path) -> float:
 
 
 def _slugify(text: str) -> str:
-    text = text.strip().lower()
-    text = "".join(c for c in text if c.isalnum() or c in " -_")
-    text = text.replace(" ", "-")
-    text = "-".join(part for part in text.split("-") if part)
+    text = text.strip().upper()
+    text = "".join(c for c in text if c.isalnum() or c in " _#")
+    text = text.replace(" ", "_")
+    text = "_".join(part for part in text.split("_") if part)
     return text[:80]
 
 
@@ -477,10 +477,10 @@ def main() -> None:
     _check_subtitle_words(args.subtitle)
 
     def _slugify(text: str) -> str:
-        text = text.strip().lower()
-        text = "".join(c for c in text if c.isalnum() or c in " -_")
-        text = text.replace(" ", "-")
-        text = "-".join(part for part in text.split("-") if part)
+        text = text.strip().upper()
+        text = "".join(c for c in text if c.isalnum() or c in " _#")
+        text = text.replace(" ", "_")
+        text = "_".join(part for part in text.split("_") if part)
         return text[:80]
 
     def _now_stamp() -> str:
