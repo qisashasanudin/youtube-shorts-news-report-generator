@@ -9,7 +9,7 @@ Primary supported runtime: Windows with the project venv at `.venv`.
 
 - Main entrypoint: `src/shorts_builder.py`
 - Default branch: `master`
-- Latest tested: gameplay/trailer URLs, movie trailer URLs, and YouTube trailer downloads
+- Latest tested: gameplay/trailer URLs, YouTube trailer downloads
 - Known limitation: burned-in subtitle visibility has not been verified with automated
   frame inspection. FFMpeg/subtitle pipeline works on many outputs, but this build
   should still be treated as in validation.
@@ -42,6 +42,13 @@ Final output:
 - `--subtitle` text must be 100-200 words
 - Output filename is sanitized for filesystem safety
 - `assets/` content is loaded from repo-relative paths so caption font lookup is consistent
+
+## Content rules
+
+- Title must not include the first subtitle sentence or any phrase like `and here is` / `and here's what you need to know`
+- Subtitle first sentence must end with: `and here's what you need to know.`
+- Subtitle closing engagement sentence must start with: `but what do you think?`
+- Subtitle closing engagement sentence must end with an open-ended question ending with `?`
 
 ## Repo layout
 
