@@ -80,7 +80,7 @@ TODO:
 Primary engine: Edge TTS
 
 Settings used:
-- Voice: `en-US-GuyNeural`
+- Voice: `en-AU-WilliamMultilingualNeural`
 - Rate: `+15%`
 - Output: MP3 monaural 24 kHz
 

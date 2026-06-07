@@ -159,8 +159,8 @@ def generate_voiceover(text: str, out: Path) -> float:
         raise MediaExtractionError("No TTS engine found (Piper or edge-tts)")
     cmd = [
         str(edge_tts),
-        "--voice", "en-US-GuyNeural",
-        "--rate", "+15%",
+        "--voice", "en-US-BrianMultilingualNeural",
+        "--rate", "+25%",
         "--text", text,
         "--write-media", str(out),
     ]
@@ -279,6 +279,19 @@ def _ts(t: float) -> str:
     return f"{h:02d}:{m:02d}:{s:05.2f}"
 
 
+def _word_end(mapped: list[dict], idx: int) -> tuple[float, float]:
+    if idx + 1 < len(mapped):
+        nxt = mapped[idx + 1]["start"]
+        s = max(mapped[idx]["start"], 0.0)
+        e = max(mapped[idx]["end"], s + 0.05)
+        if nxt > s:
+            e = min(e, nxt - 0.02)
+        return s, max(e, s + 0.05)
+    s = max(mapped[idx]["start"], 0.0)
+    e = max(mapped[idx]["end"], s + 0.05)
+    return s, max(e, s + 0.05)
+
+
 def generate_ass(
     text: str,
     audio_duration: float,
@@ -291,6 +304,7 @@ def generate_ass(
     word_dur = per_word * 0.95
 
     timings: list[tuple[float, float]] = []
+    stt_words: list[str] = []
     used = "fallback"
     if voiceover and voiceover.exists() and audio_duration > 0:
         mapped: list[dict] = []
@@ -313,73 +327,11 @@ def generate_ass(
                     mapped.append({"word": word, "start": start, "end": end})
         except Exception:
             mapped = []
-        def _normalize_token(word: str) -> str:
-            return "".join(ch.lower() for ch in word if ch.isalnum())
-
-        def _word_similarity(a: str, b: str) -> float:
-            from difflib import SequenceMatcher
-            return SequenceMatcher(None, a, b).ratio()
-
-        text_words = text.split()
-
-        def _word_end(mapped, idx):
-            if idx + 1 < len(mapped):
-                nxt = mapped[idx + 1]["start"]
-                s = max(mapped[idx]["start"], 0.0)
-                e = max(mapped[idx]["end"], s + 0.05)
-                if nxt > s:
-                    e = min(e, nxt - 0.02)
-                return s, max(e, s + 0.05)
-            s = max(mapped[idx]["start"], 0.0)
-            e = max(mapped[idx]["end"], s + 0.05)
-            return s, max(e, s + 0.05)
-
-        cursor = 0
-        fuzzy_window = 8
-        fuzzy_threshold = 0.8
-        strict_match_window = 6
-        min_ratio = 0.88
-        for tw in text_words:
-            target = _normalize_token(tw)
-            if not target:
-                continue
-            match_idx = None
-            end = min(len(mapped), cursor + strict_match_window)
-            for i in range(cursor, end):
-                candidate_norm = _normalize_token(mapped[i].get("word", "") or "")
-                if candidate_norm == target:
-                    match_idx = i
-                    break
-            if match_idx is None:
-                end = min(len(mapped), cursor + fuzzy_window)
-                for i in range(cursor, end):
-                    candidate_norm = _normalize_token(mapped[i].get("word", "") or "")
-                    score = _word_similarity(target, candidate_norm)
-                    if score >= min_ratio:
-                        match_idx = i
-                        break
-            if match_idx is None:
-                end = min(len(mapped), cursor + fuzzy_window)
-                best_idx = None
-                best_score = 0.0
-                for i in range(cursor, end):
-                    candidate_norm = _normalize_token(mapped[i].get("word", "") or "")
-                    score = _word_similarity(target, candidate_norm)
-                    if score > best_score:
-                        best_score = score
-                        best_idx = i
-                if best_idx is not None and best_score >= fuzzy_threshold:
-                    match_idx = best_idx
-            if match_idx is not None:
-                s, e = _word_end(mapped, match_idx)
-                timings.append((s, e))
-                cursor = match_idx + 1
-            elif cursor < len(mapped):
-                s, e = _word_end(mapped, cursor)
-                timings.append((s, e))
-                cursor += 1
-
-        used = "whisper" if timings else "fallback"
+        if mapped:
+            stt_words = [w["word"] for w in mapped]
+            timings = [_word_end(mapped, i) for i in range(len(mapped))]
+            words = stt_words
+            used = "whisper"
 
     if not timings:
         timings = []
@@ -387,8 +339,6 @@ def generate_ass(
             s = max(0.0, i * per_word)
             e = s + word_dur
             timings.append((s, e))
-        used = "fallback"
-
     lines = [
         "[Script Info]",
         "Title: MashButtonGaming",
