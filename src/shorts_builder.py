@@ -321,41 +321,63 @@ def generate_ass(
             return SequenceMatcher(None, a, b).ratio()
 
         text_words = text.split()
+
+        def _word_end(mapped, idx):
+            if idx + 1 < len(mapped):
+                nxt = mapped[idx + 1]["start"]
+                s = max(mapped[idx]["start"], 0.0)
+                e = max(mapped[idx]["end"], s + 0.05)
+                if nxt > s:
+                    e = min(e, nxt - 0.02)
+                return s, max(e, s + 0.05)
+            s = max(mapped[idx]["start"], 0.0)
+            e = max(mapped[idx]["end"], s + 0.05)
+            return s, max(e, s + 0.05)
+
         cursor = 0
-        fuzzy_window = 10
-        fuzzy_threshold = 0.75
-        for w_idx, tw in enumerate(text_words):
+        fuzzy_window = 8
+        fuzzy_threshold = 0.8
+        strict_match_window = 6
+        min_ratio = 0.88
+        for tw in text_words:
             target = _normalize_token(tw)
             if not target:
                 continue
-            best_idx = None
-            best_score = 0.0
-            end = min(cursor + fuzzy_window, len(mapped))
+            match_idx = None
+            end = min(len(mapped), cursor + strict_match_window)
             for i in range(cursor, end):
-                candidate_norm = _normalize_token(mapped[i].get("word", ""))
-                score = _word_similarity(target, candidate_norm)
-                if score > best_score:
-                    best_score = score
-                    best_idx = i
-            if best_idx is not None and best_score >= fuzzy_threshold:
-                s = max(mapped[best_idx]["start"], 0.0)
-                e = max(mapped[best_idx]["end"], s + 0.05)
-                if best_idx + 1 < len(mapped):
-                    nxt = mapped[best_idx + 1]["start"]
-                    if nxt > s:
-                        e = min(e, nxt - 0.02)
-                timings.append((s, max(e, s + 0.05)))
-                cursor = best_idx + 1
-            else:
-                if cursor < len(mapped):
-                    s = max(mapped[cursor]["start"], 0.0)
-                    e = max(mapped[cursor]["end"], s + 0.05)
-                    if cursor + 1 < len(mapped):
-                        nxt = mapped[cursor + 1]["start"]
-                        if nxt > s:
-                            e = min(e, nxt - 0.02)
-                    timings.append((s, max(e, s + 0.05)))
-                    cursor += 1
+                candidate_norm = _normalize_token(mapped[i].get("word", "") or "")
+                if candidate_norm == target:
+                    match_idx = i
+                    break
+            if match_idx is None:
+                end = min(len(mapped), cursor + fuzzy_window)
+                for i in range(cursor, end):
+                    candidate_norm = _normalize_token(mapped[i].get("word", "") or "")
+                    score = _word_similarity(target, candidate_norm)
+                    if score >= min_ratio:
+                        match_idx = i
+                        break
+            if match_idx is None:
+                end = min(len(mapped), cursor + fuzzy_window)
+                best_idx = None
+                best_score = 0.0
+                for i in range(cursor, end):
+                    candidate_norm = _normalize_token(mapped[i].get("word", "") or "")
+                    score = _word_similarity(target, candidate_norm)
+                    if score > best_score:
+                        best_score = score
+                        best_idx = i
+                if best_idx is not None and best_score >= fuzzy_threshold:
+                    match_idx = best_idx
+            if match_idx is not None:
+                s, e = _word_end(mapped, match_idx)
+                timings.append((s, e))
+                cursor = match_idx + 1
+            elif cursor < len(mapped):
+                s, e = _word_end(mapped, cursor)
+                timings.append((s, e))
+                cursor += 1
 
         used = "whisper" if timings else "fallback"
 
@@ -482,12 +504,18 @@ def _check_subtitle_words(text: str) -> None:
         )
 
 
+def _sanitize_subtitle(text: str) -> str:
+    text = text.replace("-", " ").replace("—", ", ")
+    return " ".join(text.split())
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--youtube", required=True, help="Trailer YouTube URL")
     ap.add_argument("--title", required=True, help="Exact title / filename stem")
     ap.add_argument("--subtitle", required=True, help="TTS/subtitle text (100-200 words)")
     args = ap.parse_args()
+    args.subtitle = _sanitize_subtitle(args.subtitle)
     _check_subtitle_words(args.subtitle)
 
     def _slugify(text: str) -> str:
