@@ -198,24 +198,21 @@ def build_segmented_edit(
     clips_dir.mkdir(parents=True, exist_ok=True)
     random.seed(12345)
 
-    min_seg = 5.0
-    max_seg = 5.0
-    target = max(duration, 5.0)
+    clip_secs = 3.0
+    source_dur = probe_duration(source)
+    max_clips = int(source_dur // clip_secs)
+    if max_clips <= 0:
+        max_clips = 1
 
-    segments: list[float] = []
-    remaining = target
-    while remaining > 0:
-        seg = min(min_seg + random.random() * (max_seg - min_seg), remaining)
-        segments.append(seg)
-        remaining -= seg
+    needed = max(1, int((duration + clip_secs - 0.1) // clip_secs))
+    if needed > max_clips:
+        needed = max_clips
 
-    video_dur = probe_duration(source)
-    parts: list[Path] = []
-
-    for i, seg in enumerate(segments):
-        max_start = max(0.0, video_dur - seg)
-        ss = random.uniform(0, max_start) if max_start > 0 else 0.0
+    raw_parts: list[Path] = []
+    for i in range(needed):
+        ss = i * clip_secs
         part = clips_dir / f"part_{i:03d}.mp4"
+        seg_dur = clip_secs if i < needed - 1 else min(clip_secs, max(0.5, source_dur - ss))
         run(
             [
                 "ffmpeg",
@@ -223,7 +220,7 @@ def build_segmented_edit(
                 "-ss",
                 f"{ss:.3f}",
                 "-t",
-                f"{seg:.3f}",
+                f"{seg_dur:.3f}",
                 "-i",
                 str(source),
                 "-c:v",
@@ -239,11 +236,21 @@ def build_segmented_edit(
             ],
             check=True,
         )
-        parts.append(part)
+        raw_parts.append(part)
+
+    selected: list[Path] = []
+    unused = list(range(len(raw_parts)))
+
+    while len(selected) < needed:
+        if not unused:
+            unused = list(range(len(raw_parts)))
+        idx = random.choice(unused)
+        selected.append(raw_parts[idx])
+        unused.remove(idx)
 
     filelist = clips_dir / "filelist.txt"
     with filelist.open("w", encoding="utf-8") as f:
-        for p in parts:
+        for p in selected:
             f.write(f"file '{p.as_posix()}'\n")
 
     run(
@@ -268,7 +275,8 @@ def build_segmented_edit(
         ],
         check=True,
     )
-    print(f"[OK] reordered: {reordered}  segments={len(segments)}  duration={round(sum(segments), 3)}")
+    actual_dur = sum(probe_duration(p) for p in selected)
+    print(f"[OK] reordered: {reordered}  segments={len(selected)}  duration={round(actual_dur, 3)}")
 
 
 def _ts(t: float) -> str:
