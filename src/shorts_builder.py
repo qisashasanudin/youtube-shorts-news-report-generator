@@ -65,14 +65,8 @@ def download_trailer(url: str, dest: Path) -> dict:
     dest.parent.mkdir(parents=True, exist_ok=True)
     outtmpl = str(dest)
     attempts = [
-        {
-            "format": "bestvideo[ext=mp4][height>=1080]+bestaudio[ext=m4a]/best[ext=mp4][height>=1080]/best[ext=mp4]/best",
-            "extractor_args": {"youtube": {"player_client": ["android"]}},
-        },
-        {
-            "format": "bestvideo[ext=mp4][height>=1080]+bestaudio[ext=m4a]/best[ext=mp4][height>=1080]/best[ext=mp4]/best",
-            "extractor_args": {"youtube": {"player_client": ["web"]}},
-        },
+        {"format": "bestvideo[ext=mp4][height>=1080]+bestaudio[ext=m4a]/best[ext=mp4][height>=1080]"},
+        {"format": "best[ext=mp4]"},
         {"format": "best"},
     ]
     for attempt in attempts:
