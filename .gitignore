@@ -37,6 +37,9 @@ bf6-season3-subtitle.txt
 shorts_builder_context.txt
 *_context.txt
 
+# Root-level subtitle scratch files
+*-subtitle.txt
+
 # Internal helper scripts not meant for repo history
 
 # Local subtitle scratch space
