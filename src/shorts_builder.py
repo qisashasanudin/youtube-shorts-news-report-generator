@@ -1,135 +1,68 @@
 #!/usr/bin/env python3
 """One-shot YouTube Shorts builder.
-
 Usage:
-    .venv\Scripts\python.exe src/shorts_builder.py --youtube "<url>" --title "<TITLE>" --subtitle "<SCRIPT TEXT>"
-
-This script is designed to run from the repo root with the project virtual environment.
-The built-in TTS fallback prefers the venv Edge TTS binary when available.
+    .venv\Scripts\python.exe src/shorts_builder.py --youtube "<url>" --title "<TITLE>" --subtitle "<TEXT>"
 """
 from __future__ import annotations
 
 import argparse
-import json
-import math
 import os
 import random
 import shutil
 import subprocess
 import sys
-import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
-try:
-    from dotenv import load_dotenv
-except Exception:  # pragma: no cover - optional convenience
-    load_dotenv = lambda *a, **k: None
+from yt_dlp import YoutubeDL
 
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
-
-try:
-    from yt_dlp import YoutubeDL
-    from yt_dlp.utils import DownloadError
-except ImportError:  # pragma: no cover - optional dependency
-    YoutubeDL = None
-    DownloadError = Exception
-
-
-class MediaExtractionError(RuntimeError):
-    pass
-
-
-# ---------------------------------------------------------------------------
-# Paths (relative to repo root)
-# ---------------------------------------------------------------------------
 REPO = Path(__file__).resolve().parent.parent
-VIDEOS = REPO / "videos"
-SRC_VIDEOS = VIDEOS
-TO_UPLOAD = VIDEOS / "TO_UPLOAD"
-DEFAULT_FONT_DIR = Path(os.environ.get("FONT_DIR", REPO / "assets/fonts/whoosh"))
+SRC_VIDEOS = REPO / "videos"
+TO_UPLOAD = SRC_VIDEOS / "TO_UPLOAD"
+DEFAULT_FONT_DIR = REPO / "assets/fonts/whoosh"
 if not DEFAULT_FONT_DIR.exists():
     sys.exit(f"[ERROR] Whoosh font dir missing: {DEFAULT_FONT_DIR}")
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-def run(cmd: list[str] | str, **kwargs) -> subprocess.CompletedProcess:
-    print(f"[RUN] {' '.join(str(c) for c in cmd) if isinstance(cmd, list) else cmd}")
-    return subprocess.run(cmd, **kwargs)
+def run(cmd, check=False, **kwargs):
+    if isinstance(cmd, str):
+        print(f"[RUN] {cmd}")
+    else:
+        print(f"[RUN] {' '.join(str(c) for c in cmd)}")
+    return subprocess.run(cmd, check=check, **kwargs)
 
 
 def probe_duration(path: Path) -> float:
     out = subprocess.check_output(
         [
             "ffprobe",
-            "-v",
-            "error",
-            "-show_entries",
-            "format=duration",
-            "-of",
-            "default=noprint_wrappers=1:nokey=1",
+            "-v", "error",
+            "-show_entries", "format=duration",
+            "-of", "default=noprint_wrappers=1:nokey=1",
             str(path),
         ]
     ).decode().strip()
     return float(out)
 
 
-def ensure_dir(p: Path) -> Path:
-    p.mkdir(parents=True, exist_ok=True)
-    return p
+def _slugify(text: str) -> str:
+    text = text.strip().lower()
+    text = "".join(c for c in text if c.isalnum() or c in " -_")
+    text = text.replace(" ", "-")
+    text = "-".join(part for part in text.split("-") if part)
+    return text[:80]
 
 
-# ---------------------------------------------------------------------------
-# Step 1: download trailer
-# ---------------------------------------------------------------------------
-def _build_ytdlp_http_headers(url: str, user_agent: str) -> dict:
-    return {
-        "User-Agent": user_agent,
-        "Accept": "*/*",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Referer": url,
-        "Origin": "https://www.youtube.com",
-    }
+def _now_stamp() -> str:
+    return datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
 
-def _find_downloaded_file(out_dir: Path) -> Path:
-    for candidate in sorted(out_dir.iterdir()):
-        if candidate.is_file() and candidate.suffix.lower() == ".mp4":
-            return candidate
-    raise MediaExtractionError(f"Downloaded MP4 not found in {out_dir}")
-
-
-def _yt_dlp_meta(url: str) -> dict:
-    if YoutubeDL is None:
-        sys.exit("[ERROR] yt-dlp is not installed")
-    opts = {
-        "quiet": True,
-        "no_warnings": True,
-        "retries": 1,
-        "socket_timeout": 15,
-    }
-    try:
-        with YoutubeDL(opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-    except Exception:
-        info = {}
-    return info
+def _build_work_dir(title: str) -> Path:
+    return SRC_VIDEOS / f"{_now_stamp()}_{_slugify(title)}"
 
 
 def download_trailer(url: str, dest: Path) -> dict:
     dest.parent.mkdir(parents=True, exist_ok=True)
-    if dest.exists() and dest.stat().st_size > 0:
-        return {
-            "skipped": True,
-            "path": str(dest),
-            "duration": probe_duration(dest),
-        }
-
-    if YoutubeDL is None:
-        sys.exit("[ERROR] yt-dlp is not installed")
-
     outtmpl = str(dest)
     attempts = [
         {
@@ -142,9 +75,7 @@ def download_trailer(url: str, dest: Path) -> dict:
         },
         {"format": "best"},
     ]
-
-    last_error: Exception | None = None
-    for idx, attempt in enumerate(attempts):
+    for attempt in attempts:
         opts = {
             "outtmpl": outtmpl,
             "noplaylist": True,
@@ -155,101 +86,109 @@ def download_trailer(url: str, dest: Path) -> dict:
             "socket_timeout": 15,
             "timeout": 60,
             "merge_output_format": "mp4",
-            **(attempt),
+            **attempt,
         }
         try:
             with YoutubeDL(opts) as ydl:
                 ydl.extract_info(url, download=True)
-            resolved = _find_downloaded_file(dest.parent)
+        except Exception as exc:
+            last_error = exc
+            continue
+        candidates = sorted(dest.parent.iterdir())
+        src = next((p for p in candidates if p.is_file() and p.suffix.lower() == ".mp4"), None)
+        if src and src.exists() and src.stat().st_size > 0:
             return {
                 "skipped": False,
-                "path": str(resolved),
-                "duration": probe_duration(resolved),
+                "path": str(src),
+                "duration": probe_duration(src),
             }
-        except DownloadError as error:
-            last_error = error
-            if idx < len(attempts) - 1:
-                time.sleep(0.5 + idx * 0.5)
-                continue
-
-    raise MediaExtractionError(
-        f"Unable to download media from {url} after fallback attempts. Last error: {last_error}"
-    ) from last_error
+        last_error = FileNotFoundError(f"No MP4 after download in {dest.parent}")
+    raise last_error
 
 
-# ---------------------------------------------------------------------------
-# Step 2: TTS voiceover
-# ---------------------------------------------------------------------------
+class MediaExtractionError(RuntimeError):
+    pass
+
+
+def _build_ytdlp_http_headers(url: str, user_agent: str) -> dict:
+    return {
+        "User-Agent": user_agent,
+        "Accept": "*/*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": url,
+        "Origin": "https://www.youtube.com",
+    }
+
+
 def generate_voiceover(text: str, out: Path) -> float:
     out.parent.mkdir(parents=True, exist_ok=True)
-    # Prefer Piper if available, otherwise fall back to Edge TTS
-    piper = REPO / "apps/piper/piper.exe"
-    if piper.exists():
-        raw = out.with_suffix(".raw")
+    if out.exists():
+        out.unlink()
+    count = len(text.split())
+    if not (100 <= count <= 200):
+        sys.exit(
+            f"[ERROR] --subtitle must be 100-200 words for valid TTS duration; got {count} words."
+        )
+    user_agent = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    )
+    url = "https://www.youtube.com/watch?v=3x_p_jw0j2U"
+    headers = _build_ytdlp_http_headers(url, user_agent)
+    piper = shutil.which("piper")
+    if piper is None:
+        piper = REPO / "apps/piper/piper.exe"
+    if piper and Path(piper).exists():
+        voice = os.environ.get("PIPER_VOICE", "en_US-lessac-medium")
         cmd = [
             str(piper),
-            "--model",
-            str(REPO / "assets/piper/en_US-lessac-medium.onnx"),
-            "--output_raw",
-            str(raw),
+            "-m", voice,
+            "-f", str(out),
+            "--cuda",
         ]
-        proc = subprocess.run(cmd, input=text.encode(), capture_output=True)
-        if proc.returncode == 0 and raw.exists():
-            # raw -> wav via ffmpeg
-            run(
-                [
-                    "ffmpeg",
-                    "-y",
-                    "-f",
-                    "s16le",
-                    "-ar",
-                    "22050",
-                    "-ac",
-                    "1",
-                    "-i",
-                    str(raw),
-                    str(out),
-                ]
-            )
-            raw.unlink(missing_ok=True)
-            return probe_duration(out)
-    # Fallback: Edge TTS
+        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = proc.communicate(input=text.encode("utf-8"))
+        if proc.returncode != 0:
+            raise MediaExtractionError(stderr.decode("utf-8", "ignore"))
+        return probe_duration(out)
     edge_tts = shutil.which("edge-tts")
     if edge_tts is None:
-        candidates = [
-            REPO / "apps/edge-tts",
-            REPO / "apps/edge-tts.exe",
-            REPO / "venv/Scripts/edge-tts.exe",
-            REPO / ".venv/Scripts/edge-tts.exe",
-            REPO / "venv/bin/edge-tts",
-            REPO / ".venv/bin/edge-tts",
-        ]
-        for c in candidates:
-            if c.exists():
-                edge_tts = str(c)
-                break
-    if edge_tts is None:
-        sys.exit("[ERROR] No TTS engine found ( Piper or edge-tts)")
+        edge_tts = REPO / "apps/edge-tts.exe"
+    if not Path(edge_tts).exists():
+        raise MediaExtractionError("No TTS engine found (Piper or edge-tts)")
     cmd = [
-        edge_tts,
-        "--voice",
-        "en-US-GuyNeural",
-        "--rate",
-        "+15%",
-        "--text",
-        text,
-        "--write-media",
-        str(out),
+        str(edge_tts),
+        "--voice", "en-US-GuyNeural",
+        "--rate", "+15%",
+        "--text", text,
+        "--write-media", str(out),
     ]
     res = run(cmd)
     if res.returncode != 0:
-        sys.exit(f"[ERROR] edge-tts failed with code {res.returncode}")
+        raise MediaExtractionError("edge-tts failed")
     return probe_duration(out)
 
 
-# ---------------------------------------------------------------------------
-# Step 3: build segmented edit (proven 6x5s pattern)
-# ---------------------------------------------------------------------------
+def _find_downloaded_file(out_dir: Path) -> Path:
+    for candidate in sorted(out_dir.iterdir()):
+        if candidate.is_file() and candidate.suffix.lower() == ".mp4":
+            return candidate
+    raise MediaExtractionError(f"Downloaded MP4 not found in {out_dir}")
+
+
+def _yt_dlp_meta(url: str) -> dict:
+    opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "retries": 1,
+        "socket_timeout": 15,
+    }
+    with YoutubeDL(opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+    return info or {}
+
+
 def build_segmented_edit(
     source: Path,
     clips_dir: Path,
@@ -332,9 +271,6 @@ def build_segmented_edit(
     print(f"[OK] reordered: {reordered}  segments={len(segments)}  duration={round(sum(segments), 3)}")
 
 
-# ---------------------------------------------------------------------------
-# Step 4: generate ASS captions from text + audio duration
-# ---------------------------------------------------------------------------
 def _ts(t: float) -> str:
     t = max(0.0, float(t))
     h = int(t // 3600)
@@ -347,10 +283,89 @@ def generate_ass(
     text: str,
     audio_duration: float,
     ass_path: Path,
+    *,
+    voiceover: Path | None = None,
 ) -> None:
     words = text.split()
     per_word = audio_duration / max(1, len(words))
     word_dur = per_word * 0.95
+
+    timings: list[tuple[float, float]] = []
+    used = "fallback"
+    if voiceover and voiceover.exists() and audio_duration > 0:
+        mapped: list[dict] = []
+        try:
+            from faster_whisper import WhisperModel
+
+            model = WhisperModel("small", device="cpu", compute_type="int8")
+            segments, _ = model.transcribe(
+                str(voiceover), language="en", word_timestamps=True
+            )
+            for seg in segments:
+                if not seg.words:
+                    continue
+                for w in seg.words:
+                    word = w.word.strip()
+                    if not word:
+                        continue
+                    start = max(w.start, 0.0)
+                    end = max(w.end, start)
+                    mapped.append({"word": word, "start": start, "end": end})
+        except Exception:
+            mapped = []
+        def _normalize_token(word: str) -> str:
+            return "".join(ch.lower() for ch in word if ch.isalnum())
+
+        def _word_similarity(a: str, b: str) -> float:
+            from difflib import SequenceMatcher
+            return SequenceMatcher(None, a, b).ratio()
+
+        text_words = text.split()
+        cursor = 0
+        fuzzy_window = 10
+        fuzzy_threshold = 0.75
+        for w_idx, tw in enumerate(text_words):
+            target = _normalize_token(tw)
+            if not target:
+                continue
+            best_idx = None
+            best_score = 0.0
+            end = min(cursor + fuzzy_window, len(mapped))
+            for i in range(cursor, end):
+                candidate_norm = _normalize_token(mapped[i].get("word", ""))
+                score = _word_similarity(target, candidate_norm)
+                if score > best_score:
+                    best_score = score
+                    best_idx = i
+            if best_idx is not None and best_score >= fuzzy_threshold:
+                s = max(mapped[best_idx]["start"], 0.0)
+                e = max(mapped[best_idx]["end"], s + 0.05)
+                if best_idx + 1 < len(mapped):
+                    nxt = mapped[best_idx + 1]["start"]
+                    if nxt > s:
+                        e = min(e, nxt - 0.02)
+                timings.append((s, max(e, s + 0.05)))
+                cursor = best_idx + 1
+            else:
+                if cursor < len(mapped):
+                    s = max(mapped[cursor]["start"], 0.0)
+                    e = max(mapped[cursor]["end"], s + 0.05)
+                    if cursor + 1 < len(mapped):
+                        nxt = mapped[cursor + 1]["start"]
+                        if nxt > s:
+                            e = min(e, nxt - 0.02)
+                    timings.append((s, max(e, s + 0.05)))
+                    cursor += 1
+
+        used = "whisper" if timings else "fallback"
+
+    if not timings:
+        timings = []
+        for i in range(len(words)):
+            s = max(0.0, i * per_word)
+            e = s + word_dur
+            timings.append((s, e))
+        used = "fallback"
 
     lines = [
         "[Script Info]",
@@ -370,23 +385,25 @@ def generate_ass(
     ]
 
     for i, w in enumerate(words):
-        s = max(0.0, i * per_word)
-        e = s + word_dur
+        if i < len(timings):
+            s, e = timings[i]
+        else:
+            s = max(0.0, i * per_word)
+            e = s + word_dur
         lines.append(
             f"Dialogue: 0,{_ts(s)},{_ts(e)},Default,,,,,,{{\\an5}}{w.upper()}\r\n"
         )
 
     ass_path.parent.mkdir(parents=True, exist_ok=True)
     ass_path.write_text("\r\n".join(lines) + "\r\n", encoding="utf-8")
-    print(f"[OK] ASS: {ass_path}  words={len(words)}")
+    used = "whisper" if timings else "fallback"
+    print(f"[OK] ASS: {ass_path}  words={len(words)}  timing={used}")
 
 
-# ---------------------------------------------------------------------------
-# Step 5: render final
-# ---------------------------------------------------------------------------
 def _relink(src: Path, dst: Path) -> Path:
     dst.parent.mkdir(parents=True, exist_ok=True)
     if dst.exists() or dst.is_symlink():
+        dst.unlink(missing_ok=True)
         dst.unlink(missing_ok=True)
     shutil.copy2(src, dst)
     return dst
@@ -412,29 +429,24 @@ def _render_burn_subs(
     _ = dur_res.stdout.strip()
 
     font_dir = font_dir or DEFAULT_FONT_DIR
-    # Use repository-relative paths to avoid Windows drive-letter parsing issues in the
-    # subtitles/freetype filters. Paths are rooted at REPO so they remain correct when
-    # ffmpeg is launched from the repo directory.
     vm = reordered.resolve().relative_to(REPO).as_posix()
     am = audio.resolve().relative_to(REPO).as_posix()
     ass_path = ass.resolve().relative_to(REPO).as_posix()
     font_path = font_dir.resolve().relative_to(REPO).as_posix()
     out_path = out.resolve().relative_to(REPO).as_posix()
-    ass_rel = ass_path
-    font_rel = font_path
-    video_rel = vm
-    audio_rel = am
-    out_rel = out_path
 
     cmd = [
         "ffmpeg", "-y",
-        "-i", video_rel,
-        "-i", audio_rel,
-        "-filter_complex", f"[0:v]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,ass={ass_rel}:fontsdir={font_rel}[v]",
-        "-map", "[v]", "-map", "1:a",
-        "-c:v", "libx264", "-c:a", "aac",
+        "-i", vm,
+        "-i", am,
+        "-filter_complex",
+        f"[0:v]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,ass={ass_path}:fontsdir={font_path}[v]",
+        "-map", "[v]",
+        "-map", "1:a",
+        "-c:v", "libx264",
+        "-c:a", "aac",
         "-pix_fmt", "yuv420p",
-        out_rel,
+        out_path,
     ]
     print("[RUN] ffmpeg subtitle burn ...")
     res = run(cmd, cwd=REPO)
@@ -454,9 +466,6 @@ def render_final(
     _render_burn_subs(work, reordered, audio, ass, font_dir, out)
 
 
-# ---------------------------------------------------------------------------
-# Step 6: verify
-# ---------------------------------------------------------------------------
 def verify(path: Path) -> None:
     if not path.exists():
         sys.exit(f"[ERROR] missing: {path}")
@@ -465,12 +474,8 @@ def verify(path: Path) -> None:
     print(f"[OK] verify size={size:,} bytes  duration={dur:.3f}s  path={path}")
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 def _check_subtitle_words(text: str) -> None:
-    words = text.split()
-    count = len(words)
+    count = len(text.split())
     if not (100 <= count <= 200):
         sys.exit(
             f"[ERROR] --subtitle must be 100-200 words for valid TTS duration; got {count} words."
@@ -516,10 +521,10 @@ def main() -> None:
     print(f"[2/6] generating voiceover... duration={voice_dur:.2f}s")
 
     build_segmented_edit(trailer_path, work / "clips", reordered_path, voice_dur)
-    print(f"[3/6] segmented edit ready")
+    print("[3/6] segmented edit ready")
 
-    generate_ass(args.subtitle, voice_dur, ass_path)
-    print(f"[4/6] generating captions...")
+    generate_ass(args.subtitle, voice_dur, ass_path, voiceover=voice_path)
+    print("[4/6] generating captions...")
 
     render_final(work, reordered_path, voice_path, ass_path, DEFAULT_FONT_DIR, final_path)
     print(f"[5/6] rendered final to {final_path}")

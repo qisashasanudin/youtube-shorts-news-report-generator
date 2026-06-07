@@ -31,3 +31,11 @@ videos/
 # System
 .DS_Store
 Thumbs.db
+
+# Temporary subtitle/test artifacts
+bf6-season3-subtitle.txt
+shorts_builder_context.txt
+*_context.txt
+
+# Internal helper scripts not meant for repo history
+src/scripts/
