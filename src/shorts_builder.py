@@ -358,7 +358,7 @@ def generate_ass(
         "",
         "[V4+ Styles]",
         "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
-        "Style: Default,Whoosh,120,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,1,0,1,6,1.2,5,5,0,0,0,0",
+        "Style: Default,Whoosh,120,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,1,0,1,6,1.2,5,5,5,0,0,150",
         "",
         "[Events]",
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
@@ -371,7 +371,7 @@ def generate_ass(
             s = max(0.0, i * per_word)
             e = s + word_dur
         lines.append(
-            f"Dialogue: 0,{_ts(s)},{_ts(e)},Default,,,,,,{{\\an5}}{w.upper()}\r\n"
+            f"Dialogue: 0,{_ts(s)},{_ts(e)},Default,,,,,,{w.upper()}\r\n"
         )
 
     ass_path.parent.mkdir(parents=True, exist_ok=True)
