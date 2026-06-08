@@ -3,12 +3,12 @@
 Generates vertical YouTube Shorts news/report videos from an official trailer/reference URL,
 TTS narration, burned-in captions, and automated editorial scheduling.
 
-## Status
+## Quick status
 
 - Main renderer: `src/shorts_builder.py`
 - Editorial state: `src/editorial_state.py`
 - Manual upload helper: `src/scripts/youtube_upload.py`
-- Scheduler: Hermes cron jobs (8x/day)
+- Scheduler: Hermes cron jobs, proposal mode only
 - Cleanup: daily temp/build folder cleanup
 - Default branch: `master`
 
@@ -32,14 +32,6 @@ Editorial automation:
 - Builds one video per run, up to 8 per day
 - Delivers finished MP4s to Telegram
 
-## Constraints enforced by the builder
-
-- `--subtitle` text must be 100-200 words
-- Output filename is sanitized for filesystem safety
-- `assets/` content is loaded from repo-relative paths so caption font lookup is consistent
-- Final video duration must be within Shorts limits
-- Footage is selected from official sources only; ranked priority is enforced at the editorial/orchestration layer
-
 ## Content rules
 
 - Title must not include: `and here's what you need to know`
@@ -47,16 +39,39 @@ Editorial automation:
 - Subtitle closing engagement sentence must start with: `but what do you think?`
 - Subtitle closing engagement sentence must end with an open-ended question ending with `?`
 
-## YouTube / delivery integration
+## Upload and delivery
 
-- Final completed Shorts are delivered to Telegram by default.
-- Manual optional upload helper: `src/scripts/youtube_upload.py`
-- Upload helper supports `--privacy private/public/unlisted`; default is `private`.
-- OAuth material is required for uploads: `client_secrets.json` and `token.json`; these files
-  contain sensitive credentials and should not be committed.
-- The scheduler and builder do not auto-upload to YouTube.
-- TikTok integration is not implemented yet. If added later, use manual-first workflow with explicit approval before any upload.
+Current behavior:
+- Default delivery is Telegram only.
+- Scheduler and builder do not auto-upload anywhere.
+- All external uploads are manual-first and require explicit approval.
+
+YouTube:
+- Manual helper: `src/scripts/youtube_upload.py`
+- Supported privacy: `private`, `public`, `unlisted`
+- Default privacy: `private`
+- Required files: `client_secrets.json`, `token.json`
+- These credential files should not be committed.
+
+TikTok:
+- Not implemented.
+- If added later, it should remain manual-first with explicit approval before upload.
+- Production use should use approved official API access only; avoid unofficial uploaders.
+
+Shared rules:
 - Trailer source size limit: reject sources larger than `500 MB` before download.
+- Manual upload command format:
+  ```bash
+  .venv\\Scripts\\python.exe src/scripts/youtube_upload.py "videos/TO_UPLOAD/<file>.mp4" --title "<TITLE>" --privacy private --description "<DESCRIPTION>" --tags "TAG1,TAG2"
+  ```
+
+## Builder constraints
+
+- `--subtitle` text must be 100-200 words
+- Output filename is sanitized for filesystem safety
+- `assets/` content is loaded from repo-relative paths so caption font lookup is consistent
+- Final video duration must be within Shorts limits
+- Footage is selected from official sources only; ranked priority is enforced at the editorial/orchestration layer
 
 ## Repo layout
 
@@ -88,32 +103,11 @@ python -m venv .venv
 
 Run the builder from the repo root:
 ```bash
-.venv\\Scripts\\python.exe src/shorts_builder.py \\
-  --youtube "<YOUTUBE_URL>" \\
-  --title "<TITLE_TEXT>" \\
+.venv\\Scripts\\python.exe src/shorts_builder.py \
+  --youtube "<YOUTUBE_URL>" \
+  --title "<TITLE_TEXT>" \
   --subtitle "<NARRATOR_SCRIPT_TEXT>"
 ```
-
-- Manual upload:
-```bash
-.venv\\Scripts\\python.exe src/scripts/youtube_upload.py "videos/TO_UPLOAD/<file>.mp4" --title "<TITLE>" --privacy private --description "<DESCRIPTION>" --tags "TAG1,TAG2"
-```
-
-## TikTok integration
-
-Current status:
-- Not implemented.
-- Planned as manual-first with explicit approval before upload.
-
-What is needed for TikTok support:
-- A TikTok developer account.
-- A TikTok app with approved video upload permissions, if using the official API.
-- Region/account eligibility for automated or bulk uploads.
-
-Guidance:
-- Do not use unofficial uploaders for production accounts; they risk rate limits or account action.
-- Start with manual upload of MP4s from `videos/TO_UPLOAD/` on a phone/desktop until a safe upload path is established.
-- If/when API access is approved, I can add a manual upload helper similar to `src/scripts/youtube_upload.py`.
 
 ## Privacy / artifact handling
 
@@ -121,6 +115,7 @@ Guidance:
 - Final rendered video assets stay local in `videos/TO_UPLOAD/`
 - `assets/` is tracked in git
 - Daily cleanup removes temp/build folders while preserving `videos/TO_UPLOAD`
+- Upload credential files should not be committed
 
 ## TSD / toolchain details
 
