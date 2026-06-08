@@ -12,6 +12,10 @@ TTS narration, burned-in captions, and automated editorial scheduling.
 - Cleanup: daily temp/build folder cleanup
 - Default branch: `master`
 
+## Channel
+
+- YouTube: https://youtube.com/@mashbuttongaming
+
 ## What the system does
 
 One-shot build:
@@ -42,6 +46,16 @@ Editorial automation:
 - Subtitle first sentence must end with: `and here's what you need to know.`
 - Subtitle closing engagement sentence must start with: `but what do you think?`
 - Subtitle closing engagement sentence must end with an open-ended question ending with `?`
+
+## YouTube / delivery integration
+
+- Final completed Shorts are delivered to Telegram by default.
+- Manual optional upload helper: `src/scripts/youtube_upload.py`
+- Upload helper supports `--privacy private/public/unlisted`; default is `private`.
+- OAuth material is required for uploads: `client_secrets.json` and `token.json`; these files
+  contain sensitive credentials and should not be committed.
+- The scheduler and builder do not auto-upload to YouTube.
+- Trailer source size limit: reject sources larger than `500 MB` before download.
 
 ## Repo layout
 

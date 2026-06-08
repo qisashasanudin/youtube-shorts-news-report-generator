@@ -172,3 +172,12 @@ Policy rules enforced by the scheduler prompt:
 - Builds depend on stable YouTube access and Edge TTS availability
 - Telegram media delivery may time out on large files; retry or split if needed
 - YouTube auto-upload is disabled in the scheduler; manual upload only via `youtube_upload.py`
+
+## 12. YouTube integration notes
+
+- Channel: https://youtube.com/@mashbuttongaming
+- Manual upload only via `src/scripts/youtube_upload.py`
+- `youtube_upload.py` default privacy is `private`
+- Required OAuth files are not tracked in git: `client_secrets.json` and `token.json`
+- Scheduler/builder behavior is build-and-deliver to Telegram, not auto-upload
+- Reject any selected trailer source larger than `500 MB`
