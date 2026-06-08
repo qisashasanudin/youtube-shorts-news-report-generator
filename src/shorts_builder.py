@@ -199,7 +199,7 @@ def build_segmented_edit(
     clips_dir.mkdir(parents=True, exist_ok=True)
     random.seed(12345)
 
-    clip_secs = 3.0
+    clip_secs = 5.0
     source_dur = probe_duration(source)
     max_clips = max(1, int(source_dur // clip_secs))
     needed = max(1, int((duration + clip_secs - 0.1) // clip_secs))
@@ -240,9 +240,7 @@ def build_segmented_edit(
 
     selected: list[Path] = list(raw_parts)
     random.shuffle(selected)
-
-    while len(selected) > 1 and sum(probe_duration(p) for p in selected) > duration:
-        selected.pop()
+    selected = selected[:needed]
     # Step 3/4: build concat list, then merge.
     filelist = clips_dir / "filelist.txt"
     with filelist.open("w", encoding="utf-8") as f:
