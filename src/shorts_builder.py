@@ -201,19 +201,18 @@ def build_segmented_edit(
 
     clip_secs = 3.0
     source_dur = probe_duration(source)
-    max_clips = int(source_dur // clip_secs)
-    if max_clips <= 0:
-        max_clips = 1
-
+    max_clips = max(1, int(source_dur // clip_secs))
     needed = max(1, int((duration + clip_secs - 0.1) // clip_secs))
     if needed > max_clips:
         needed = max_clips
 
+    # Use the full trailer chunk pool, then pick the minimum shuffled chunks
+    # needed to reach or slightly exceed narration duration.
     raw_parts: list[Path] = []
-    for i in range(needed):
+    for i in range(max_clips):
         ss = i * clip_secs
         part = clips_dir / f"part_{i:03d}.mp4"
-        seg_dur = clip_secs if i < needed - 1 else min(clip_secs, max(0.5, source_dur - ss))
+        seg_dur = clip_secs if i < max_clips - 1 else max(0.5, source_dur - ss)
         run(
             [
                 "ffmpeg",
@@ -227,9 +226,9 @@ def build_segmented_edit(
                 "-c:v",
                 "libx264",
                 "-preset",
-                "veryfast",
+                "ultrafast",
                 "-crf",
-                "18",
+                "28",
                 "-pix_fmt",
                 "yuv420p",
                 "-an",
@@ -239,16 +238,12 @@ def build_segmented_edit(
         )
         raw_parts.append(part)
 
-    selected: list[Path] = []
-    unused = list(range(len(raw_parts)))
+    selected: list[Path] = list(raw_parts)
+    random.shuffle(selected)
 
-    while len(selected) < needed:
-        if not unused:
-            unused = list(range(len(raw_parts)))
-        idx = random.choice(unused)
-        selected.append(raw_parts[idx])
-        unused.remove(idx)
-
+    while len(selected) > 1 and sum(probe_duration(p) for p in selected) > duration:
+        selected.pop()
+    # Step 3/4: build concat list, then merge.
     filelist = clips_dir / "filelist.txt"
     with filelist.open("w", encoding="utf-8") as f:
         for p in selected:
@@ -276,8 +271,29 @@ def build_segmented_edit(
         ],
         check=True,
     )
-    actual_dur = sum(probe_duration(p) for p in selected)
-    print(f"[OK] reordered: {reordered}  segments={len(selected)}  duration={round(actual_dur, 3)}")
+    if probe_duration(reordered) > duration:
+        trimmed = reordered.with_suffix(".trimmed.mp4")
+        run(
+            [
+                "ffmpeg",
+                "-y",
+                "-i",
+                str(reordered),
+                "-t",
+                f"{duration:.3f}",
+                "-c:v",
+                "libx264",
+                "-preset",
+                "veryfast",
+                "-crf",
+                "18",
+                "-pix_fmt",
+                "yuv420p",
+                str(trimmed),
+            ],
+            check=True,
+        )
+        trimmed.replace(reordered)
 
 
 def _ts(t: float) -> str:
