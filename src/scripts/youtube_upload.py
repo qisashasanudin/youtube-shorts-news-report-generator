@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 CLIENT_SECRETS = REPO / "client_secrets.json"
 TOKEN_FILE = REPO / "token.json"
-SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+SCOPES = [
+    "https://www.googleapis.com/auth/youtube.upload",
+    "https://www.googleapis.com/auth/yt-analytics.readonly",
+    "https://www.googleapis.com/auth/youtube.readonly",
+]
 
 
 def _load_client_secrets() -> dict:
@@ -51,6 +56,16 @@ def get_credentials():
     return creds
 
 
+_TAG_RE = re.compile(r"(?:^|\s)(#[A-Za-z0-9_]+)")
+
+
+def _split_title_and_tags(title: str) -> tuple[str, list[str]]:
+    tags = [m.group(1).lstrip("#") for m in _TAG_RE.finditer(title)]
+    clean = _TAG_RE.sub("", title).strip()
+    clean = re.sub(r"\s{2,}", " ", clean)
+    return clean, tags
+
+
 def upload(
     video_path: Path,
     title: str,
@@ -64,14 +79,26 @@ def upload(
     if not video_path.exists():
         raise FileNotFoundError(video_path)
 
+    clean_title, title_tags = _split_title_and_tags(title)
+    effective_tags = sorted(set((tags or []) + title_tags))
+
+    # Advice: never pollute the YouTube title with hashtags.
+    # Add the hashtags back into the description instead, as plain text.
+    description_with_tags = description.strip()
+    if title_tags:
+        suffix = " ".join(f"#{t}" for t in title_tags)
+        description_with_tags = (
+            f"{description_with_tags}\n\n{suffix}" if description_with_tags else suffix
+        )
+
     creds = get_credentials()
     service = build("youtube", "v3", credentials=creds)
 
     body = {
         "snippet": {
-            "title": title,
-            "description": description,
-            "tags": tags or [],
+            "title": clean_title,
+            "description": description_with_tags,
+            "tags": effective_tags,
             "categoryId": "24",
         },
         "status": {
@@ -110,7 +137,7 @@ def main() -> int:
     video_path = Path(args[0])
     title = video_path.stem
     privacy = "private"
-    description = title
+    description = ""
     tags: list[str] = []
 
     it = iter(args[1:])

@@ -126,9 +126,9 @@ def generate_voiceover(text: str, out: Path) -> float:
     if out.exists():
         out.unlink()
     count = len(text.split())
-    if not (100 <= count <= 200):
-        sys.exit(
-            f"[ERROR] --subtitle must be 100-200 words for valid TTS duration; got {count} words."
+    if not (50 <= count <= 100):
+        raise ValueError(
+            f"[ERROR] --subtitle must be 50-100 words; got {count} words."
         )
     user_agent = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -454,9 +454,9 @@ def verify(path: Path) -> None:
 
 def _check_subtitle_words(text: str) -> None:
     count = len(text.split())
-    if not (100 <= count <= 200):
-        sys.exit(
-            f"[ERROR] --subtitle must be 100-200 words for valid TTS duration; got {count} words."
+    if not (50 <= count <= 100):
+        raise ValueError(
+            f"[ERROR] --subtitle must be 50-100 words; got {count} words."
         )
 
 

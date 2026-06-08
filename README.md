@@ -1,99 +1,49 @@
-# MashButtonGaming Shorts Builder
+# MashButtonGaming YouTube Shorts News Generator
 
-Creates short-form gaming news videos for YouTube and TikTok from official game trailers. You supply a trailer link and a script; the tool handles voiceover, captions, video editing, and scheduling.
+One-shot builder for vertical game news Shorts from official trailer footage. The pipeline produces a ready-to-upload MP4 and posts a proposal to Telegram for approval before any build or upload.
 
-## What it does
+## Project Layout
 
-- Turns an official game trailer into a vertical short video
-- Adds AI voiceover narration
-- Burns captions directly into the video
-- Suggests and schedules upcoming topics
-- Delivers finished videos to Telegram for review
+- `src/shorts_builder.py` — unified renderer. Downloads the trailer, generates TTS narration, builds captions, selects shuffled trailer chunks, and outputs the final MP4.
+- `src/editorial_state.py` — tracks used stories and per-day upload counts.
+- `src/scripts/youtube_upload.py` — optional manual upload helper for YouTube.
+- `videos/TO_UPLOAD/` — final MP4 output with a clean title-based filename.
+- `editorial_state.json` — editorial ledger.
 
-## How a video is made
+## Workflow
 
-1. Download the official trailer footage
-2. Generate the voice track from your script
-3. Pick and shuffle short clips from the trailer
-4. Align captions to the voiceover
-5. Render the final 720x1280 video
-6. Verify duration and file size
+1. Propose exactly one fresh gaming news story on Telegram: trailer URL, title, and 50–100 word subtitle.
+2. Wait for explicit approval.
+3. Build the Short with `src/shorts_builder.py`.
+4. Send the finished MP4 to Telegram.
+5. Upload to YouTube only when explicitly approved.
 
-## Current delivery behavior
+## Editorial Rules
 
-- Telegram is the default deliver channel
-- YouTube and TikTok uploads are manual only
-- Nothing is uploaded automatically
+- Trailer sources must be official. Prefer reveal, then gameplay, then update, then developer video.
+- Maximum source trailer size: 500 MB.
+- Story freshness limit: 72 hours.
+- Deduplicate against `editorial_state.json`.
+- Daily capacity for new uploads is capped.
 
-## Starting a new short
+## Script Requirements
 
-Prerequisites:
-- Install Python 3.11 or newer
-- Run `python -m venv .venv` from the project folder
-- Run `.venv\\Scripts\\python.exe -m pip install -r src/scripts/requirements.txt`
+- Subtitle text must be 50–100 words to keep narration duration aimed closer to 20s for better view-to-swipe performance.
+- Opening ends with: "...and here's what you need to know."
+- Closing starts with: "but what do you think?" and ends with an open-ended question.
+- Title style is sensational, concise, and news-oriented. It must clearly mention the franchise or key terms.
+- The final MP4 filename must match the title text, with hashtags included in the filename when useful for organization.
+- Never place the phrase "and here's what you need to know" in the final MP4 filename.
 
-Build a video:
-```bash
-.venv\\Scripts\\python.exe src/shorts_builder.py \
-  --youtube "<TRAILER_URL>" \
-  --title "<TITLE>" \
-  --subtitle "<SCRIPT>"
-```
+## Scheduler Behavior
 
-The finished file appears in `videos/TO_UPLOAD/`.
+- The scheduler runs once per day at 20:00.
+- It proposes one candidate on Telegram, then stops.
+- Do not auto-build or auto-upload from the scheduler.
 
-## Rules to follow
+## Upload Helper Notes
 
-Titles:
-- Do not include `and here's what you need to know`
-
-Scripts:
-- Opening must end with `and here's what you need to know.`
-- Closing must start with `but what do you think?`
-- Closing must end with an open-ended question
-
-Length:
-- Script should be around 100-200 words
-- Final video should be at least 30 seconds
-
-Sources:
-- Use only official game trailers or official channels
-- Do not download sources larger than 500 MB
-
-## Where things live
-
-- Builder: `src/shorts_builder.py`
-- Editorial helper: `src/editorial_state.py`
-- Tasks/scripts: `src/scripts/`
-- Assets: `assets/fonts/whoosh/`
-- Finished videos: `videos/TO_UPLOAD/`
-- Temporary files: `videos/` and `tmp` are cleaned daily
-
-## YouTube and TikTok
-
-YouTube:
-- Upload helper included: `src/scripts/youtube_upload.py`
-- Supports private, public, and unlisted uploads
-- Default privacy is private
-- Requires `client_secrets.json` and `token.json`
-- These files contain private credentials and should not be shared
-
-TikTok:
-- Not implemented yet
-- Planned for manual upload only, similar to YouTube
-- Official API access is recommended when available
-
-Manual upload example:
-```bash
-.venv\\Scripts\\python.exe src/scripts/youtube_upload.py "videos/TO_UPLOAD/<file>.mp4" --title "<TITLE>" --privacy private --description "<DESCRIPTION>" --tags "TAG1,TAG2"
-```
-
-## Channel
-
-- YouTube: https://youtube.com/@mashbuttongaming
-
-## Notes
-
-- Video assets stay local on this machine
-- Large files may fail to send through chat apps; use direct transfer if needed
-- Captions depend on the included Whoosh font
+- `youtube_upload.py` is manual-first.
+- Default privacy is private.
+- Hashtags are stripped from the YouTube title and moved into the description plus tags fields to keep click-focused titles clean.
+- If `client_secrets.json` or `token.json` is missing or missing scopes, the uploader cannot run until OAuth is repaired.
