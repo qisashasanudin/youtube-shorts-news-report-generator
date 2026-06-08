@@ -55,6 +55,7 @@ Editorial automation:
 - OAuth material is required for uploads: `client_secrets.json` and `token.json`; these files
   contain sensitive credentials and should not be committed.
 - The scheduler and builder do not auto-upload to YouTube.
+- TikTok integration is not implemented yet. If added later, use manual-first workflow with explicit approval before any upload.
 - Trailer source size limit: reject sources larger than `500 MB` before download.
 
 ## Repo layout
@@ -93,10 +94,26 @@ Run the builder from the repo root:
   --subtitle "<NARRATOR_SCRIPT_TEXT>"
 ```
 
-Manual upload:
+- Manual upload:
 ```bash
 .venv\\Scripts\\python.exe src/scripts/youtube_upload.py "videos/TO_UPLOAD/<file>.mp4" --title "<TITLE>" --privacy private --description "<DESCRIPTION>" --tags "TAG1,TAG2"
 ```
+
+## TikTok integration
+
+Current status:
+- Not implemented.
+- Planned as manual-first with explicit approval before upload.
+
+What is needed for TikTok support:
+- A TikTok developer account.
+- A TikTok app with approved video upload permissions, if using the official API.
+- Region/account eligibility for automated or bulk uploads.
+
+Guidance:
+- Do not use unofficial uploaders for production accounts; they risk rate limits or account action.
+- Start with manual upload of MP4s from `videos/TO_UPLOAD/` on a phone/desktop until a safe upload path is established.
+- If/when API access is approved, I can add a manual upload helper similar to `src/scripts/youtube_upload.py`.
 
 ## Privacy / artifact handling
 

@@ -172,6 +172,7 @@ Policy rules enforced by the scheduler prompt:
 - Builds depend on stable YouTube access and Edge TTS availability
 - Telegram media delivery may time out on large files; retry or split if needed
 - YouTube auto-upload is disabled in the scheduler; manual upload only via `youtube_upload.py`
+- TikTok automation is not implemented. If TikTok support is added later, it should be manual-first with explicit approval before upload, and the same credential-safety rules apply.
 
 ## 12. YouTube integration notes
 
