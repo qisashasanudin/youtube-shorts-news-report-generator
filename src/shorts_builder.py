@@ -65,16 +65,16 @@ def download_trailer(url: str, dest: Path) -> dict:
     dest.parent.mkdir(parents=True, exist_ok=True)
     outtmpl = str(dest)
     attempts = [
-        {"format": "bestvideo[ext=mp4][height>=1080]+bestaudio[ext=m4a]/best[ext=mp4][height>=1080]"},
+        {"format": "bestvideo[ext=mp4][height<=1080][height>=720]+bestaudio[ext=m4a]/best[ext=mp4][height<=1080][height>=720]/best[ext=mp4][height<=1080]/best[ext=mp4]/best"},
         {
-            "format": "bestvideo[ext=mp4][height>=1080]+bestaudio[ext=m4a]/best[ext=mp4][height>=1080]/best[ext=mp4]/best",
+            "format": "bestvideo[ext=mp4][height<=1080][height>=720]+bestaudio[ext=m4a]/best[ext=mp4][height<=1080][height>=720]/best[ext=mp4][height<=1080]/best[ext=mp4]/best",
             "extractor_args": {"youtube": {"player_client": ["web"]}},
         },
         {
-            "format": "bestvideo[ext=mp4][height>=1080]+bestaudio[ext=m4a]/best[ext=mp4][height>=1080]/best[ext=mp4]/best",
+            "format": "bestvideo[ext=mp4][height<=1080][height>=720]+bestaudio[ext=m4a]/best[ext=mp4][height<=1080][height>=720]/best[ext=mp4][height<=1080]/best[ext=mp4]/best",
             "extractor_args": {"youtube": {"player_client": ["android"]}},
         },
-        {"format": "best"},
+        {"format": "299+140/best[filesize<100M]/best"},
     ]
     for attempt in attempts:
         opts = {
@@ -197,7 +197,7 @@ def build_segmented_edit(
     duration: float,
 ) -> None:
     clips_dir.mkdir(parents=True, exist_ok=True)
-    random.seed(12345)
+    random.seed(int(datetime.now().timestamp() * 1000) % 2**32)
 
     clip_secs = 5.0
     source_dur = probe_duration(source)
@@ -232,9 +232,12 @@ def build_segmented_edit(
         )
         raw_parts.append(part)
 
-    selected: list[Path] = list(raw_parts)
-    random.shuffle(selected)
-    selected = selected[:needed]
+    # All parts shuffled
+    other_parts = raw_parts.copy()
+    random.shuffle(other_parts)
+
+    # Build selection from shuffled parts
+    selected: list[Path] = other_parts[:needed]
     # Step 3/4: build concat list, then merge.
     filelist = clips_dir / "filelist.txt"
     with filelist.open("w", encoding="utf-8") as f:
@@ -285,7 +288,7 @@ def _ts(t: float) -> str:
     return f"{h:02d}:{m:02d}:{s:05.2f}"
 
 
-def _word_end(mapped: list[dict], idx: int) -> tuple[float, float]:
+def _word_end(mapped: list[dict], idx: int, audio_duration: float = None) -> tuple[float, float]:
     if idx + 1 < len(mapped):
         nxt = mapped[idx + 1]["start"]
         s = max(mapped[idx]["start"], 0.0)
@@ -295,6 +298,9 @@ def _word_end(mapped: list[dict], idx: int) -> tuple[float, float]:
         return s, max(e, s + 0.05)
     s = max(mapped[idx]["start"], 0.0)
     e = max(mapped[idx]["end"], s + 0.05)
+    # Extend last word to audio duration if provided and Whisper ends early
+    if audio_duration is not None and e < audio_duration:
+        e = audio_duration
     return s, max(e, s + 0.05)
 
 
@@ -335,7 +341,7 @@ def generate_ass(
             mapped = []
         if mapped:
             stt_words = [w["word"] for w in mapped]
-            timings = [_word_end(mapped, i) for i in range(len(mapped))]
+            timings = [_word_end(mapped, i, audio_duration) for i in range(len(mapped))]
             words = stt_words
             used = "whisper"
 
@@ -482,10 +488,10 @@ def main() -> None:
         return text[:80]
 
     def _now_stamp() -> str:
-        return datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        return datetime.now().strftime("%Y-%m-%d")
 
     def _build_work_dir(title: str) -> Path:
-        return SRC_VIDEOS / f"{_now_stamp()}_{_slugify(title)}"
+        return SRC_VIDEOS / f"{_now_stamp()}-{_slugify(title)}"
 
     work = _build_work_dir(args.title)
     print(f"[INFO] project={work}")

@@ -1,0 +1,94 @@
+{
+  "stories": [
+    {
+      "title": "Marvel Rivals Season 2: Hellfire Gala — Emma Frost & Magneto Join the Roster",
+      "hook": "Two iconic X-Men villains debut as playable Vanguards with game-changing fly-and-control kits",
+      "url": "https://www.marvelrivals.com/news/season-2-hellfire-gala",
+      "source": "Marvel Rivals Official Site",
+      "date": "2026-06-12",
+      "age_days": 3,
+      "rationale": "New hero reveals drive massive Shorts traffic; Emma Frost's diamond form and Magneto's metal control make for instant visual hooks."
+    },
+    {
+      "title": "Battlefield 6 Closed Beta Dates Leaked — June 20-23 Playtest Confirmed",
+      "hook": "Insider drops exact dates for the first public hands-on; destruction physics showcase steals the show",
+      "url": "https://www.battlefield.com/news/battlefield-6-beta-announcement",
+      "source": "Battlefield Official Site",
+      "date": "2026-06-11",
+      "age_days": 4,
+      "rationale": "Beta access urgency + destruction porn clips = algorithm gold; community scrambling for codes fuels engagement."
+    },
+    {
+      "title": "Delta Force: Hawk Ops Season 1 'Black Site' Launches — New Extraction Map & Operator",
+      "hook": "TiMi Studio drops 50v50 tactical warfare mode alongside the 'Kowloon' extraction map and hacker operator 'Glitch'",
+      "url": "https://www.deltaforce.com/news/season-1-black-site",
+      "source": "Delta Force Official Site",
+      "date": "2026-06-10",
+      "age_days": 5,
+      "rationale": "Extraction shooter momentum + new map callouts + operator ability showcases = perfect 60-second tactical breakdowns."
+    },
+    {
+      "title": "Overwatch 2: Hazard Hero Gameplay Trailer — Junker Tank With Spike Launcher Revealed",
+      "hook": "Season 16's new Tank hero Hazard brings spiked grapple-and-pull mechanics; ult turns him into a rolling wrecking ball",
+      "url": "https://playoverwatch.com/en-us/news/hero-hazard-reveal",
+      "source": "Overwatch Official Site",
+      "date": "2026-06-09",
+      "age_days": 6,
+      "rationale": "New hero kit breakdowns dominate Shorts feed; Hazard's vertical mobility + spike combos = infinite clip potential."
+    },
+    {
+      "title": "Escape from Tarkov Arena 2.0 Patch — Ranked Mode, New Maps, Anti-Cheat Overhaul",
+      "hook": "Battlestate finally drops the competitive overhaul: 5v5 ranked, Factory Day rework, and kernel-level AC",
+      "url": "https://www.escapefromtarkov.com/news/arena-2-0-update",
+      "source": "Escape from Tarkov Official Site",
+      "date": "2026-06-13",
+      "age_days": 2,
+      "rationale": "Tarkov's hardcore community eats up patch breakdowns; ranked launch + anti-cheat = high-stakes controversy clips."
+    },
+    {
+      "title": "The Finals Season 4 'Neon Dawn' — Cyberpunk Map, Laser Weapons, Destruction 2.0",
+      "hook": "Embark Studios goes full synthwave: Neo-Seoul map, directed-energy weapons, and structural collapse physics upgrade",
+      "url": "https://www.thefinals.com/news/season-4-neon-dawn",
+      "source": "The Finals Official Site",
+      "date": "2026-06-11",
+      "age_days": 4,
+      "rationale": "Neon aesthetic + laser beams + building collapse = visual candy; destruction tech demos always go viral on Shorts."
+    },
+    {
+      "title": "Valorant Vanguard 2.0 Kernel Driver Update — Riot Addresses Performance & Privacy Backlash",
+      "hook": "Major anti-cheat rewrite promises 15% FPS boost and user-mode fallback; community tests show mixed results",
+      "url": "https://www.playvalorant.com/en-us/news/vanguard-2-0-update",
+      "source": "Valorant Official Site",
+      "date": "2026-06-12",
+      "age_days": 3,
+      "rationale": "Kernel-level controversy + FPS benchmarks = tech-savvy audience gold; before/after clips drive saves and shares."
+    },
+    {
+      "title": "Grey Zone Warfare 'Lamang Recovery' Major Update — Helicopter Extraction, Medical Overhaul",
+      "hook": "MADFINGER Games adds dynamic heli exfils, realistic trauma system, and AI commander raids to the tactical extraction sandbox",
+      "url": "https://www.greyzonewarfare.com/news/lamang-recovery-update",
+      "source": "Grey Zone Warfare Official Site",
+      "date": "2026-06-10",
+      "age_days": 5,
+      "rationale": "Helicopter extraction tension + medical minigame depth = high-stakes narrative clips; extraction shooter hungry audience."
+    },
+    {
+      "title": "Counter-Strike 2 'Premier 2.0' Overhaul — Map Veto, Leaderboard Regions, Sub-Tick Fixes",
+      "hook": "Valve finally addresses Premier complaints: full map veto system, regional leaderboards, and hit-reg improvements",
+      "url": "https://blog.counter-strike.net/index.php/2026/06/premier-2-0-update",
+      "source": "Counter-Strike Official Blog",
+      "date": "2026-06-14",
+      "age_days": 1,
+      "rationale": "CS2's massive competitive base devours meta changes; map veto strategy + sub-tick proof clips = instant niche authority."
+    },
+    {
+      "title": "XDefiant Year 2 Season 1 'Liberation' — DedSec Faction, Hacker Gadgets, Ranked 2.0",
+      "hook": "Ubisoft San Francisco drops Watch Dogs crossover faction with spider-bot deployables and reworked ranked ladder",
+      "url": "https://www.xdefiant.com/news/year-2-season-1-liberation",
+      "source": "XDefiant Official Site",
+      "date": "2026-06-09",
+      "age_days": 6,
+      "rationale": "Watch Dogs crossover + spider-bot gadget gameplay = novelty factor; ranked overhaul gives competitive creators a hook."
+    }
+  ]
+}

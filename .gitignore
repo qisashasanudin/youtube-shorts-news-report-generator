@@ -32,6 +32,12 @@ videos/
 .DS_Store
 Thumbs.db
 
+# Secrets
+client_secrets.json
+token.json
+tiktok_client_secrets.json
+tiktok_client_secrets.json.template
+
 # Temporary subtitle/test artifacts
 bf6-season3-subtitle.txt
 shorts_builder_context.txt
