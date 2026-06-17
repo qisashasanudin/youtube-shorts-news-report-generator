@@ -5,7 +5,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[1]
+REPO = Path(__file__).resolve().parents[2]
 STATE_FILE = REPO / "editorial_state.json"
 
 
