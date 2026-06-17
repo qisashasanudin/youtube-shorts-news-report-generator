@@ -50,3 +50,8 @@ shorts_builder_context.txt
 
 # Local subtitle scratch space
 /tmp/
+
+# Scheduler/runtime state files (generated, not committed)
+scheduler_output.json
+editorial_state.json
+analytics_log.json

@@ -22,7 +22,6 @@ try:
 except ImportError:
     requests = None  # type: ignore
 
-
 ROOT = Path(r"C:\Users\qthas\Videos\Youtube Projects\MashButtonGaming")
 OUT = ROOT / "output"
 TMP = ROOT / "output_tmp"
@@ -48,40 +47,55 @@ class NewsItem:
     published: Optional[str] = None
 
 
+# Shooter/FPS oriented search queries for broad web search (Bing/Yahoo via search_web.py)
+SHOOTER_QUERIES = [
+    "battlefield 6 news 2026",
+    "call of duty modern warfare 4 news 2026",
+    "valorant patch notes 2026",
+    "counter-strike 2 update 2026",
+    "overwatch 2 new hero 2026",
+    "tactical shooter games 2026",
+    "rainbow six siege update 2026",
+    "escape from tarkov news 2026",
+    "apex legends season 2026",
+    "halo infinite update 2026",
+    "destiny 2 news 2026",
+    "fps games 2026 release",
+    "third person shooter games 2026",
+    "xbox showcase shooter games 2026",
+    "playstation shooter games 2026",
+]
+
+
 def fetch_gaming_news(limit: int = 10) -> List[NewsItem]:
-    """Fetch recent gaming news from public RSS feeds as a reliable Internet-first source."""
-    feeds = [
-        "https://www.ign.com/feeds/news",
-        "https://www.gamespot.com/feeds/news/",
-        "https://www.polygon.com/rss/news/index.xml",
-    ]
+    """Fetch recent gaming news from broad web search (Bing/Yahoo)."""
+    # Import here to avoid circular imports
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from search_web import search_web
+
     items: List[NewsItem] = []
     if requests is None:
         raise RuntimeError("requests is required for news fetch. Install requirements.")
-    headers = {"User-Agent": "MashButtonGaming/0.1 (+local-bot)"}
-    for feed in feeds:
-        try:
-            r = requests.get(feed, headers=headers, timeout=20)
-            r.raise_for_status()
-        except Exception as exc:
-            print(f"[news] feed skipped ({feed}): {exc}")
-            continue
-        text = r.text
-        # Very light RSS extraction without xml.etree to keep deps minimal.
-        titles = re.findall(r"<title>(.*?)</title>", text, flags=re.DOTALL | re.IGNORECASE)
-        links = re.findall(r"<link>(.*?)</link>", text, flags=re.DOTALL | re.IGNORECASE)
-        for title, link in zip(titles[1:], links[1:]):
-            title = re.sub(r"<.*?>", "", title).strip()
-            link = re.sub(r"<.*?>", "", link).strip()
-            if not title or not link:
-                continue
-            items.append(NewsItem(title=title, url=link, source=feed))
-            if len(items) >= limit:
-                break
+
+    for query in SHOOTER_QUERIES:
         if len(items) >= limit:
             break
+        try:
+            results = search_web(query, max_results=5)
+        except Exception as exc:
+            print(f"[news] search failed ({query}): {exc}")
+            continue
+        for item in results:
+            if len(items) >= limit:
+                break
+            title = item.get("title", "").strip()
+            url = item.get("url", "").strip()
+            if not title or not url:
+                continue
+            items.append(NewsItem(title=title, url=url, source=query))
+
     if not items:
-        raise RuntimeError("No gaming news fetched. Check network or feed URLs.")
+        raise RuntimeError("No gaming news fetched. Check network or search queries.")
     return items
 
 
@@ -219,7 +233,7 @@ def splice_clips_vertical(clips: List[Path], out_path: Path = TMP / "spliced_raw
 def build_ass_from_vtt(vtt_path: Path, ass_path: Path = CAPTIONS_ASS) -> Path:
     text = vtt_path.read_text(encoding="utf-8")
     cues = re.findall(r"(\d+:\d+:\d+[.,]\d+)\s*-->\s*(\d+:\d+:\d+[.,]\d+)\s*\n(.*?)(?=\n\n|\Z)", text, re.DOTALL)
-    ass = """\
+    ass = """\\
 [Script Info]
 Title: captions
 ScriptType: v4.00+
