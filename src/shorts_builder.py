@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """One-shot YouTube Shorts builder.
 Usage:
-    .venv\Scripts\python.exe src/shorts_builder.py --youtube "<url>" --title "<TITLE>" --subtitle "<TEXT>"
+    .venv\\Scripts\\python.exe src/shorts_builder.py --youtube "<url>" --title "<TITLE>" --subtitle "<TEXT>"
 """
 from __future__ import annotations
 
