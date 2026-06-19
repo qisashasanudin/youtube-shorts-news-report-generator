@@ -126,7 +126,7 @@ def generate_voiceover(text: str, out: Path) -> float:
     if out.exists():
         out.unlink()
     count = len(text.split())
-    if not (50 <= count <= 100):
+    if not (50 <= count <= 150):
         raise ValueError(
             f"[ERROR] --subtitle must be 50-100 words; got {count} words."
         )
@@ -460,7 +460,7 @@ def verify(path: Path) -> None:
 
 def _check_subtitle_words(text: str) -> None:
     count = len(text.split())
-    if not (50 <= count <= 100):
+    if not (50 <= count <= 150):
         raise ValueError(
             f"[ERROR] --subtitle must be 50-100 words; got {count} words."
         )
