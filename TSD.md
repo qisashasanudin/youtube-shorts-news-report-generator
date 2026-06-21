@@ -21,7 +21,7 @@ This document defines the exact runtime dependencies, compatibility requirements
 - `src/subtitles.py` — ASS caption generation with optional Whisper timing.
 - `src/render.py` — final subtitle burn and render.
 - `src/editorial_state.py` — optional duplicate/check/count CLI helper.
-- `src/requirements.txt` — Python dependency manifest.
+- `requirements.txt` — Python dependency manifest.
 - `assets/fonts/whoosh/` — font assets required for ASS rendering.
 - `videos/TO_UPLOAD/` — final MP4 output.
 
@@ -39,12 +39,12 @@ This document defines the exact runtime dependencies, compatibility requirements
 python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install --upgrade pip
-python3 -m pip install -r src/requirements.txt
+python3 -m pip install -r requirements.txt
 ```
 
 ## Python dependencies
 
-Current dependency list from `src/requirements.txt`:
+Current dependency list from `requirements.txt`:
 
 - edge-tts >= 0.4.0
 - faster-whisper >= 1.0.0
@@ -83,7 +83,7 @@ Current dependency list from `src/requirements.txt`:
 - Confirm `ffmpeg` and `ffprobe` are available on PATH or via macOS Homebrew paths.
 - Confirm `assets/fonts/whoosh/` exists with font files.
 - Create and activate `.venv`.
-- Install dependencies from `src/requirements.txt`.
+- Install dependencies from `requirements.txt`.
 - Run:
   ```bash
   python3 src/shorts_builder.py --youtube "https://youtu.be/..." --title "TEST TITLE" --subtitle "Fifty words of narration ..."

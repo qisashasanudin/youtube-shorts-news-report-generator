@@ -14,7 +14,7 @@ One-shot builder that converts a YouTube trailer URL, a title, and a short narra
 - `src/subtitles.py` — ASS caption generation with per-word timing.
 - `src/render.py` — subtitle burn and final 720×1280 MP4 render.
 - `src/editorial_state.py` — optional CLI helper for duplicate checks and daily upload counting.
-- `src/requirements.txt` — Python dependency list.
+- `requirements.txt` — Python dependency list.
 - `assets/fonts/whoosh/` — font assets required for ASS subtitle rendering.
 - `videos/TO_UPLOAD/` — destination for final output files.
 - `hermes-backup/` — backup documentation and legacy skill files; not required to run the builder.
@@ -43,7 +43,7 @@ This project no longer uses a shell wrapper or a `src/scripts/` build helper. Th
    ```
 2. Install dependencies:
    ```bash
-   python3 -m pip install -r src/requirements.txt
+   python3 -m pip install -r requirements.txt
    ```
 3. Run the builder:
    ```bash
@@ -74,7 +74,7 @@ This project no longer uses a shell wrapper or a `src/scripts/` build helper. Th
 - Python 3.11+ is recommended. Python 3.9 is deprecated by upstream dependencies.
 - `ffmpeg` and `ffprobe` must be installed and discoverable on PATH, or available via Homebrew locations on macOS.
 - `assets/fonts/whoosh/` must exist and contain font files for ASS rendering.
-- `src/requirements.txt` is the single dependency source of truth for Python packages.
+- `requirements.txt` is the single dependency source of truth for Python packages.
 
 ## Subtitle and script rules
 
