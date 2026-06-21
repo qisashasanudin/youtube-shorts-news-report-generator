@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF' >&2
-Usage: ./run_short_builder.sh --url "<youtube-url>" --title "<TITLE>" --subtitle "<50-150 word narration>"
+Usage: ./run_short_builder.sh --url "<youtube-url>" --title "<TITLE>" --subtitle "<50-150 word narration>" [--shuffle|--no-shuffle]
 
 This wrapper ensures the script runs with python3 and maps --url to the shorts builder's --youtube option.
 EOF
@@ -13,6 +13,7 @@ EOF
 URL=""
 TITLE=""
 SUBTITLE=""
+SHUFFLE_FLAG=""
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -36,6 +37,12 @@ while [ "$#" -gt 0 ]; do
       shift
       SUBTITLE="${1:-}"
       ;;
+    --shuffle)
+      SHUFFLE_FLAG="--shuffle"
+      ;;
+    --no-shuffle)
+      SHUFFLE_FLAG="--no-shuffle"
+      ;;
     -h|--help)
       usage
       ;;
@@ -45,7 +52,7 @@ while [ "$#" -gt 0 ]; do
       ;;
   esac
   shift
-done
+ done
 
 if [ -z "$URL" ] || [ -z "$TITLE" ] || [ -z "$SUBTITLE" ]; then
   echo "Error: --url, --title, and --subtitle are required." >&2
@@ -57,4 +64,4 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
-exec python3 src/shorts_builder.py --youtube "$URL" --title "$TITLE" --subtitle "$SUBTITLE"
+exec python3 src/shorts_builder.py --youtube "$URL" --title "$TITLE" --subtitle "$SUBTITLE" $SHUFFLE_FLAG

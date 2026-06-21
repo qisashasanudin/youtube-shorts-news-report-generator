@@ -244,6 +244,7 @@ def build_segmented_edit(
     clips_dir: Path,
     reordered: Path,
     duration: float,
+    shuffle: bool = True,
 ) -> None:
     clips_dir.mkdir(parents=True, exist_ok=True)
     random.seed(int(datetime.now().timestamp() * 1000) % 2**32)
@@ -255,8 +256,7 @@ def build_segmented_edit(
     if needed > max_clips:
         needed = max_clips
 
-    # Use the full trailer chunk pool, then pick the minimum shuffled chunks
-    # needed to reach or slightly exceed narration duration.
+    # Use the full trailer chunk pool, then pick the minimum needed segments.
     raw_parts: list[Path] = []
     for i in range(max_clips):
         ss = i * clip_secs
@@ -281,12 +281,13 @@ def build_segmented_edit(
         )
         raw_parts.append(part)
 
-    # All parts shuffled
-    other_parts = raw_parts.copy()
-    random.shuffle(other_parts)
+    if shuffle:
+        other_parts = raw_parts.copy()
+        random.shuffle(other_parts)
+        selected: list[Path] = other_parts[:needed]
+    else:
+        selected = raw_parts[:needed]
 
-    # Build selection from shuffled parts
-    selected: list[Path] = other_parts[:needed]
     # Step 3/4: build concat list, then merge.
     filelist = clips_dir / "filelist.txt"
     with filelist.open("w", encoding="utf-8") as f:
@@ -524,6 +525,20 @@ def main() -> None:
     ap.add_argument("--youtube", required=True, help="Trailer YouTube URL")
     ap.add_argument("--title", required=True, help="Exact title / filename stem")
     ap.add_argument("--subtitle", required=True, help="TTS/subtitle text (100-200 words)")
+    shuffle_group = ap.add_mutually_exclusive_group()
+    shuffle_group.add_argument(
+        "--shuffle",
+        action="store_true",
+        dest="shuffle",
+        help="Enable random shuffling of trailer segments (default)",
+    )
+    shuffle_group.add_argument(
+        "--no-shuffle",
+        action="store_false",
+        dest="shuffle",
+        help="Disable random shuffling of trailer segments",
+    )
+    ap.set_defaults(shuffle=True)
     args = ap.parse_args()
     args.subtitle = _sanitize_subtitle(args.subtitle)
     _check_subtitle_words(args.subtitle)
@@ -558,8 +573,14 @@ def main() -> None:
     voice_dur = generate_voiceover(args.subtitle, voice_path)
     print(f"[2/6] generating voiceover... duration={voice_dur:.2f}s")
 
-    build_segmented_edit(trailer_path, work / "clips", reordered_path, voice_dur)
-    print("[3/6] segmented edit ready")
+    build_segmented_edit(
+        trailer_path,
+        work / "clips",
+        reordered_path,
+        voice_dur,
+        shuffle=args.shuffle,
+    )
+    print(f"[3/6] segmented edit ready  shuffle={args.shuffle}")
 
     generate_ass(args.subtitle, voice_dur, ass_path, voiceover=voice_path)
     print("[4/6] generating captions...")
