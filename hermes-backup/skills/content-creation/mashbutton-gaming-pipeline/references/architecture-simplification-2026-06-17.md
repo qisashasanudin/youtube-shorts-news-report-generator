@@ -31,7 +31,7 @@ Consolidated the entire pipeline to a **single builder script** (`src/shorts_bui
 │  python src/shorts_builder.py                               │
 │    --youtube "https://youtu.be/..."                         │
 │    --title "BOMBASTIC CLICKBAIT TITLE"                      │
-│    --subtitle "50-100 word narration, plain words..."       │
+│    --subtitle "50-150 word narration, plain words..."       │
 │  → videos/TO_UPLOAD/{TITLE}.mp4 (720×1280, subs + audio)    │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -56,7 +56,7 @@ cd C:\Users\qthas\Programming\Belajar\YouTube\youtube-shorts-news-report-generat
 .venv\Scripts\python.exe src/shorts_builder.py \
   --youtube "https://youtu.be/VIDEO_ID" \
   --title "BOMBASTIC TITLE" \
-  --subtitle "50-100 words of narration with proper punctuation"
+  --subtitle "50-150 words of narration with proper punctuation"
 ```
 
 ## Validation Checklist (Pre-Deploy)
@@ -72,7 +72,7 @@ cd C:\Users\qthas\Programming\Belajar\YouTube\youtube-shorts-news-report-generat
 | Hermes CDP shows `null` endpoint | Restart Hermes gateway process (laptop restart didn't reload config) |
 | Browser tools fail with `Invalid CDP value: 'null'` | Use `hermes gateway status` + `tasklist \| grep -i hermes` to verify |
 | Native Discord/Telegram upload fails | Use `curl -F "file=@..." https://tmpfiles.org/api/v1/upload` |
-| Subtitle word count < 50 or > 100 | Builder exits immediately; enforce 50-100 range in draft |
+| Subtitle word count < 50 or > 100 | Builder exits immediately; enforce 50-150 range in draft |
 | Age-gated trailer | Use `--extractor-args "youtube:player_client=android"` format 18 (360p) |
 
 ## Files Updated This Session

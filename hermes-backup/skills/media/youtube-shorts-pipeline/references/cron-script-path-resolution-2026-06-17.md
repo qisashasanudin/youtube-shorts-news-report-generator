@@ -87,7 +87,7 @@ python src/shorts_builder.py \
   --title "TEST_BUILD" \
   --subtitle "THIS IS A COMPREHENSIVE END TO END TEST OF THE SHORTS BUILDER PIPELINE TO VERIFY THAT ALL COMPONENTS INCLUDING TRAILER DOWNLOAD VOICEOVER GENERATION SEGMENTED EDITING CAPTION CREATION AND FINAL RENDERING ARE WORKING CORRECTLY TOGETHER FROM START TO FINISH WITHOUT ANY ERRORS OR ISSUES THAT WOULD PREVENT SUCCESSFUL SHORT CREATION TODAY"
 ```
-(50 words exactly — minimum for 50-100 word gate)
+(50 words exactly — minimum for 50-150 word gate)
 
 **Syntax Warning Fix**: `src/shorts_builder.py` docstring line 4 had invalid escape sequence `\S` in `.venv\Scripts\python.exe`. Fixed by doubling backslashes: `.venv\\Scripts\\python.exe`. Always escape backslashes in Python triple-quoted strings.
 

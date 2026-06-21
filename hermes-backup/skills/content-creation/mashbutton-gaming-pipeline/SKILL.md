@@ -13,6 +13,7 @@ Short-form news pipeline for one-game FPS/gaming stories across TikTok and YouTu
 Use the reference short at https://www.youtube.com/shorts/wlZbtb-7T9o as the style baseline.
 
 Required behaviors:
+
 - Title/text style: all-caps punchy headline with hashtags
 - Orientation: portrait Short
 - Subtitles: tiny short-on-screen captions, 1-2 words when possible
@@ -21,9 +22,10 @@ Required behaviors:
 ## Unified Entrypoint (`src/shorts_builder.py`) — **ONLY BUILDER IN REPO**
 
 **One-shot command pattern (Windows `.venv`, primary runtime):**
+
 ```bash
 cd C:\Users\qthas\Programming\Belajar\YouTube\youtube-shorts-news-report-generator
-.venv\Scripts\python.exe src\shorts_builder.py --youtube "URL" --title "Exact Title" --subtitle "Narration text 50-100 words"
+.venv\Scripts\python.exe src\shorts_builder.py --youtube "URL" --title "Exact Title" --subtitle "Narration text 50-150 words"
 ```
 
 This project uses the repo-root Windows `.venv` as the canonical runtime. Do not add a browser-only fallback.
@@ -43,7 +45,7 @@ This project uses the repo-root Windows `.venv` as the canonical runtime. Do not
 │  python src/shorts_builder.py                               │
 │    --youtube "https://youtu.be/..."                         │
 │    --title "BOMBASTIC CLICKBAIT TITLE"                      │
-│    --subtitle "50-100 word narration, plain words..."       │
+│    --subtitle "50-150 word narration, plain words..."       │
 │  → videos/TO_UPLOAD/{TITLE}.mp4 (720×1280, subs + audio)    │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -51,6 +53,7 @@ This project uses the repo-root Windows `.venv` as the canonical runtime. Do not
 **Zero local search code remains in the repo.** All web search is handled exclusively by Hermes gateway CDP via the cron job's browser toolset.
 
 This single script handles the full chain:
+
 1. Download trailer via yt-dlp (1080p+, Android client fallback for age-gated)
 2. Generate TTS voiceover (edge-tts Brian +25% rate)
 3. Build segmented edit (5s shuffled clips, stream-copy assembly)
@@ -60,13 +63,14 @@ This single script handles the full chain:
 
 ### WordPress Count Guard (enforced)
 
-`--subtitle` must be **50–100 words**. The builder exits immediately if outside this range. This prevents unusably short TTS output and improves TikTok view-to-swipe retention.
+`--subtitle` must be **50–150 words**. The builder exits immediately if outside this range. This prevents unusably short TTS output and improves TikTok view-to-swipe retention.
 
 ### Filename Sanitization (automatic)
 
 Unsafe characters in `--title` are sanitized automatically before writing the final MP4. The sanitized filename is used as the final output stem plus `.mp4` in `videos/TO_UPLOAD/`.
 
 Sanitization rules:
+
 - Uppercase output: `text.strip().upper()`
 - Allowed characters: `A-Z`, `0-9`, spaces, underscores, and `#`
 - Spaces become `_`
@@ -78,14 +82,17 @@ This preserves hashtags in the filename. Slugs like `BATTLEFIELD_6_SEASON_3_BLAS
 ### Render / Burn
 
 Final render uses repo-relative paths:
+
 ```
 ass=captions/captions.ass:fontsdir=assets/fonts/whoosh[v]
 ```
+
 ffmpeg is launched with `cwd=REPO` so these paths resolve correctly on Windows.
 
 ### Rebuild and Title/Subtitle Correction Protocol
 
 When changing title or subtitle content after a build has started or finished:
+
 1. Kill the active build process first.
 2. Update verified facts/subtitle text only.
 3. Re-invoke the unified builder once with the corrected input.
@@ -94,11 +101,13 @@ When changing title or subtitle content after a build has started or finished:
 **Work Directory Caching Gotcha:** The builder creates work directories named `videos/<DATE>-<SLUGIFIED_TITLE>/`. If you rebuild with the **same title on the same day**, the existing work directory is reused — including any cached `trailer_full.mp4` from the previous run. This causes stale trailer footage to be used even when you pass a different `--youtube` URL.
 
 Fix options:
+
 - Delete the existing work directory before rebuilding: `rm -rf "videos/2026-06-09-MARATHON_SEASON_2_..."`
 - Or change the title slightly (e.g., append `_GAMEPLAY` or `_V2`) to force a fresh work directory and fresh trailer download.
 - The builder does NOT re-download the trailer if `trailer_full.mp4` already exists in the work dir.
 
 **Specific corrections from this session:**
+
 - If the title contains `and here's what you need to know`, remove it and ensure the subtitle places that phrase at the end of the first sentence before any facts.
 - The subtitle's first sentence must end with `and here's what you need to know.` and facts must follow after; never place facts before this bridge phrase.
 - Game facts (map names, dates, modes, unlocks) must come from official/authoritative sources only, not intuition or prior memory.
@@ -110,6 +119,7 @@ Fix options:
 ## Clip Reordering Optimization
 
 When stitching trailer clips, do not extract or render more source footage than needed.
+
 - Minimum clips = clips needed to reach or slightly exceed narration duration.
 - After shuffling without reuse, stop selecting as soon as the combined selected clip duration reaches the narration duration.
 - This avoids unnecessary chunk generation and keeps the concat encode from ballooning in size and time.
@@ -117,6 +127,7 @@ When stitching trailer clips, do not extract or render more source footage than 
 ## Copy-Mode Assembly (Default)
 
 Re-encoding trailer chunks and the final concat is not required. Use stream copy for all edit-stage assembly:
+
 - Chunk extraction (`part_*.mp4`): `-c copy -an`
 - Concat (`reordered.mp4`): `-f concat -safe 0 -c copy -an`
 - Trim pass if needed: `-t <duration> -c copy`
@@ -126,6 +137,7 @@ This preserves source codec quality and removes the GPU/CPU re-encode bottleneck
 ## Blocked Build Recovery Pattern
 
 When direct builder execution stalls on trailer download or final render for a long period and cannot complete:
+
 1. Do not blind-retry the same command immediately.
 2. Inspect the existing `videos/<timestamp>-<title>/` work tree for usable artifacts (`clips/trailer_full.mp4`, generated `clips/part_*.mp4`, and `audio/voiceover.mp3`).
 3. If the reusable clip and audio assets are already present, rebuild only the remaining pipeline stages locally (ASS generation, shuffled selection/concat, final render with subtitle burn) instead of rerunning the entire channel chain.
@@ -135,6 +147,7 @@ When direct builder execution stalls on trailer download or final render for a l
 ## Fact-First Research Rule
 
 Before generating subtitle text about a game update:
+
 1. Search EA/official blog/roadmap source for the exact update name and content additions.
 2. Use only confirmed facts: map names, mode returns, unlock windows, date ranges, platform coverage.
 3. Do not include fluff metrics or unsupported claims like "player counts climbing" unless verified from official numbers.
@@ -143,6 +156,7 @@ Before generating subtitle text about a game update:
 **Fact Verification Lesson (2026-06-15):** The agent hallucinated a fake Battlefield map "Giants of Karelia" as a flop comparison. User caught this immediately. **Never fabricate game names, dates, or features.** If a comparison is needed, use verified real examples (e.g., Orbital, Hourglass, Fjell 652, Aerodrome, Manifest for BF2042/V maps). When uncertain, omit the comparison rather than invent one.
 
 **Primary Source Verification Toolkit (2026-06-15):**
+
 - **YouTube oEmbed API** — confirms video title/author/uploader/thumbnail/duration without API key:
   ```bash
   curl "https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=VIDEO_ID&format=json"
@@ -178,6 +192,7 @@ Before attempting any merge logic, sanity-check the hand-written `--subtitle` te
 ## Subtitle Proofreading / View Preference Rule
 
 Prefer `manual` on-screen text over STT tokens when both sides are likely the same word:
+
 1. Build `manual_words` from `--subtitle` and `stt_words` from Whisper.
 2. Truncate the longer list so lengths match one-to-one before comparing.
 3. For each aligned pair:
@@ -189,9 +204,10 @@ Prefer `manual` on-screen text over STT tokens when both sides are likely the sa
 ### Script Style (Must Follow)
 
 Narration structure:
+
 1. Sensational ambiguous hook / clickbait hold
 2. Opening sentence must END with: `...and here's what you need to know.` This phrase must appear at the very end of the FIRST sentence, before any facts are stated.
-3. Main information (50-100 words total)
+3. Main information (50-150 words total)
 4. Closing engagement sentence must START with: `but what do you think?` and ALWAYS end with a question mark `?`
 
 Use casual conversational phrasing. One game/topic per short. Closed captions with hashtags in the title.
@@ -203,19 +219,22 @@ These phrases are non-negotiable placement rules. The opening hook never trails 
 **Correction from session 2026-06-09:** The user rejected "corny/hype" narration (e.g., "collapsed into chaos," "buckled under demand," "stranded in orbit") in favor of a grounded, factual style.
 
 Preferred tone:
+
 - Plain language: "launched with major server issues," "servers couldn't handle the player count," "progression tracking failed"
 - Avoid: "disaster," "chaos," "collapsed," "stranded," "amplified the disaster"
 - State facts directly; let the situations speak. The engagement question carries the emotional hook.
 - Still use the required bridge phrase (`and here's what you need to know`) and closer (`but what do you think?`) — just don't inflate the middle.
 
 **Correction from session 2026-06-11:** User provided explicit narration corrections in sequence:
-1. "The narration is too short" — expanded from ~65 to ~95 words (target 50–100 word range fully)
+
+1. "The narration is too short" — expanded from ~65 to ~95 words (target 50–150 word range fully)
 2. "There is not 'and here is what you need to know'" — phrase must be present
 3. "It should be at the very first sentence" — bridge phrase terminates the opening sentence, no facts before it
 4. "The closing question is not good enough" — binary "good/bad" questions rejected; must target a specific debatable aspect (unique mechanic, dev pedigree vs. genre, design trade-off)
 5. "Use this narration instead" — user may provide final exact text; accept it verbatim
 
 **Engagement Question Quality (validated 2026-06-11):** See `references/engagement-question-guidelines.md`. Examples that passed:
+
 - HAEX: "Is the world-reshaping mechanic exciting or just a gimmick?" — targets signature mechanic
 - Warzone EOS: "Forced upgrade or justified evolution?" — targets player tension (forced migration vs. technical necessity)
 - Rejected: "Survival genius or just Division 2.0?" — too binary, doesn't invite substantive debate
@@ -267,6 +286,7 @@ Share the `tmpfiles.org` download link in the chat. Do not rely on native `MEDIA
 **Scheduler Behavior (Multi-candidate workflow)**
 
 These rules apply to the main scheduler and any substitute automation:
+
 - Scheduler runs **4×/day** during 09:00–18:00.
 - Each run proposes exactly 10 candidate gaming news stories from the last 7 days.
 - Story quality scoring applies to every proposal: 0–100 using freshness, broad audience appeal, shareability, official trailer availability, and brand fit for MashButtonGaming.
@@ -288,12 +308,14 @@ These rules apply to the main scheduler and any substitute automation:
 **Critical:** The scheduler must NOT use Firecrawl, Nous web search, or any paid/gated search tool. The only approved search path is Hermes gateway browser tools (CDP).
 
 **Architecture:** Agent mode cron job with `browser` toolset
+
 - Job config: `no_agent: false`, `enabled_toolsets: ["browser", "file"]`
 - Uses Hermes gateway's browser tools (CDP on port 9222) for Bing News search
 - **Zero local search code in repo** — all web search happens through Hermes gateway
 - Job ID: `80c55b5a2392` — runs 4×/day at 09:00, 12:00, 15:00, 18:00 (WIB)
 
 **Agent Workflow:**
+
 1. `browser_navigate` to Bing News search (2 queries: general + leaker)
 2. `browser_snapshot(full=true)` to extract structured results (titles, snippets, sources, relative times)
 3. `browser_click` on result links to get canonical article URLs
@@ -302,18 +324,21 @@ These rules apply to the main scheduler and any substitute automation:
 6. Print Discord-formatted report to stdout
 
 **Search URLs (broad, no hardcoded titles):**
+
 - General: `https://www.bing.com/news/search?q=gaming+news+2026+shooter+FPS+this+week`
 - Leaker: `https://www.bing.com/news/search?q=gaming+leak+2026+shooter+FPS+this+week`
 
 **No local search scripts in repo** — all web search externalized to Hermes gateway.
 
 **Required configuration:**
+
 - Job mode: `no_agent=False` (agent mode)
 - `enabled_toolsets: ["browser", "file"]`
 - Deliver to Discord
 - Prompt instructs agent to use browser tools for all search steps
 
 **Why agent mode (not no_agent=True):**
+
 - The Hermes gateway manages CDP connection internally
 - Agent can execute multi-step browser workflows reliably
 - No need to maintain local Edge instance or CDP URL config
@@ -332,6 +357,7 @@ These rules apply to the main scheduler and any substitute automation:
 **Scheduler Failure Recovery (Real-World Paths)**
 
 These are the observed failure modes for the scheduler’s news-search step in this environment:
+
 - **`web_search` fails with `Feature 'search.firecrawl' unavailable`** when the `firecrawl-py` install is blocked by an externally-managed Python environment (`pip install` errors, PEP 668). This stops all Firecrawl/Bing-style web search results.
 - **`browser_navigate` fails with `Invalid CDP value: 'null'`** when `browser.cdp_url` is `'null'` or unconfigured. The built-in browser/gateway search path is unavailable until CDP is configured.
 - **Direct Bing HTML scraping may return 0 results** even with HTTP 200 if the page is a `b_hide` / anti-bot response. Selectors like `li.b_algo` return nothing.
@@ -339,6 +365,7 @@ These are the observed failure modes for the scheduler’s news-search step in t
 - **User constraint (explicit):** Do not use Firecrawl or any paid Nous web tool in the scheduler. The scheduler must stay on free local HTML search only.
 
 **Recovery sequence:**
+
 1. Verify with `hermes status --all` whether web tools are usable.
 2. If managed web search is unavailable, do not retry the same broken tool in a loop.
 3. Switch to a direct verified HTML scrape using curl (`requests.get`) and save the raw HTML for inspection if needed.
@@ -359,22 +386,23 @@ Cronjob Response: shorts-news-scheduler
 (job_id: 80c55b5a2392)
 -------------
 
-1. [Game Title] — [Hook/Event]  
-Official source/trailer: [URL]  
-Publication/event: [source, date]  
-Approximate age: [e.g., ~2 days].  
+1. [Game Title] — [Hook/Event]
+Official source/trailer: [URL]
+Publication/event: [source, date]
+Approximate age: [e.g., ~2 days].
 Rationale: [Why this works for Shorts — one sentence].
 
-2. [Game Title] — [Hook/Event]  
-Official source: [URL]  
-Publication/event: [source, date]  
-Approximate age: [e.g., ~7 days].  
+2. [Game Title] — [Hook/Event]
+Official source: [URL]
+Publication/event: [source, date]
+Approximate age: [e.g., ~7 days].
 Rationale: [Why this works for Shorts — one sentence].
 
 ... (continue to 10)
 ```
 
 Rules:
+
 - Use "Official source/trailer:" when there's a direct trailer URL, "Official source:" for articles
 - Age in days relative to today
 - Rationale: one sentence, specific to short-form engagement (clips, reveals, urgency, community reaction)
@@ -388,6 +416,7 @@ Rules:
 ## Deduplication Rule (same-day filter)
 
 When filtering duplicates against `editorial_state.json`:
+
 - Block repeats only if the story was already covered **today**.
 - Stories covered yesterday or any earlier date are allowed again.
 - This keeps same-day variety while allowing older stories to resurface in future runs.
@@ -395,12 +424,14 @@ When filtering duplicates against `editorial_state.json`:
 ## Scheduler Failure Recovery (Real-World Paths)
 
 These are the observed failure modes for the scheduler’s news-search step in this environment:
+
 - **`web_search` fails with `Feature 'search.firecrawl' unavailable`** when the `firecrawl-py` install is blocked by an externally-managed Python environment (`pip install` errors, PEP 668). This stops all Firecrawl/Bing-style web search results.
 - **`browser_navigate` fails with `Invalid CDP value: 'null'`** when `browser.cdp_url` is `'null'` or unconfigured. The built-in browser/gateway search path is unavailable until CDP is configured.
 - **Direct Bing HTML scraping may return 0 results** even with HTTP 200 if the page is a `b_hide` / anti-bot response. Selectors like `li.b_algo` return nothing.
 - **User constraint (explicit):** Do not use Firecrawl or any paid Nous web tool in the scheduler. The scheduler must stay on free local HTML search only.
 
 **Recovery sequence:**
+
 1. Verify with `hermes status --all` whether web tools are usable.
 2. If managed web search is unavailable, do not retry the same broken tool in a loop.
 3. Switch to a direct verified HTML scrape using curl (`requests.get`) and save the raw HTML for inspection if needed.
@@ -415,6 +446,7 @@ These are the observed failure modes for the scheduler’s news-search step in t
 ## Scheduler Command Sequence
 
 Use this sequence when the scheduler state appears stuck or `last_run_at` does not advance after an attempted run:
+
 1. List current cron jobs: `cronjob action='list'`
 2. Update the job to the current cadence, candidate count, and prompt: `cronjob action='update' job_id='<id>' schedule='0 8-22/2 * * *' prompt='...'`
 3. If runtime state cannot be recovered, bypass automation and invoke the builder CLI directly in the project directory instead of retrying scheduler runs.
@@ -422,6 +454,7 @@ Use this sequence when the scheduler state appears stuck or `last_run_at` does n
 ## TikTok Metadata Packaging
 
 This project already supports TikTok packaging via the `tiktok_upload.py` helper:
+
 - Build once with `src/shorts_builder.py`.
 - Run `src/scripts/tiktok_upload.py --title <title> --subtitle <caption> --hashtags <comma-separated>` to produce a metadata package in `videos/tiktok_meta/`.
 - Keep TikTok upload manual-first until explicit auto-upload access is provided.
@@ -430,6 +463,7 @@ This project already supports TikTok packaging via the `tiktok_upload.py` helper
 ## Preferred TikTok Posting Spacing
 
 Same-day batch rules from verified creator behavior:
+
 - Breaking/major news: every 1 hour.
 - Normal news day: every 2–3 hours.
 - Minimum gap: 30 minutes between posts.
@@ -499,6 +533,7 @@ If a typo-correction config is present, it must be optional and non-authoritativ
 ## Subtitle Text Merge Rule
 
 When incorporating STT tokens into the final on-screen caption list:
+
 1. Build `manual_words` from `--subtitle` and `stt_words` from Whisper.
 2. Make the lists one-to-one aligned before comparing:
    - If one side runs out, use the remaining tokens from the longer list.
@@ -514,6 +549,7 @@ Stability matters more than variety. Keep the configured Edge TTS voice/rate acr
 ### Subtitle Correct Edit Sync Rule
 
 When subtitle text is updated after a build has already run:
+
 - The saved caption or subtitle file is the new source of truth; any cached burned-subtitle artifact that was produced from prior text is now stale.
 - The next render must regenerate captions/audio from the updated source text before delivery.
 - Do not mark a final MP4 as current unless its `captions.ass`, `audio/voiceover.mp3`, and `clips/reordered.mp4` all come from the same render run as the final file.
@@ -524,6 +560,7 @@ When subtitle text is updated after a build has already run:
 Before word-count checks and caption generation, normalize punctuation in the supplied `--subtitle` text. This prevents word-count drift and tokenization mismatches in ASS generation. Sanitization is a data-prep step, not content rewriting.
 
 Required replacements:
+
 - Replace `-` with ` `
 - Replace `—` with `, `
 - Collapse consecutive whitespace to a single space
@@ -550,17 +587,20 @@ All caption and narration text must come from invocation-time parameters or the 
 ## Caption Source and Timing Rules
 
 **Preferred source split:**
+
 - TTS input: use hand-written `--subtitle` exactly as provided.
 - On-screen captions: use `faster-whisper` STT word tokens from the generated voiceover.
 
 This removes manual-to-STT drift and spelling mismatch risk. The builder must accept both paths and prefer STT text when available.
 
 **Alignment fallback:**
+
 - If STT is unavailable or fails, fall back to manual word timings evenly spaced from audio duration.
 - Do not silently rewrite or normalize STT tokens; display them exactly as spoken.
 - Do not merge spelling variants together in code; leave that to the caller if needed.
 
 **No hardcoded text in builder:**
+
 - The builder must not inject engagement questions, hooks, or filler text.
 - All narration and caption content comes from `--subtitle`.
 
@@ -571,7 +611,7 @@ This removes manual-to-STT drift and spelling mismatch risk. The builder must ac
 - **Trailer type verification is mandatory before building.** Confirm the source is an official gameplay trailer or cinematic, not a livestream, podcast, recap, or fan compilation. Use title/description cues plus quick frame/section verification before launching the builder.
 - **Explicit trailer selection rule:** When multiple official trailers exist (e.g., "Cinematic Trailer" vs "Gameplay Trailer"), the caller must specify which one to use. Do not assume the first search result is correct. Verify the trailer URL matches the requested type (gameplay vs cinematic) by checking the YouTube title/description before invoking the builder.
 - **Work directory caching gotcha:** The builder creates work directories named `videos/<DATE>-<SLUGIFIED_TITLE>/`. If you rebuild with the **same title on the same day**, the existing work directory is reused — including any cached `trailer_full.mp4` from the previous run. This causes stale trailer footage to be used even when you pass a different `--youtube` URL.
-  - Fix: Delete the existing work directory before rebuilding: `rm -rf "videos/2026-06-09-MARATHON_SEASON_2_..."` 
+  - Fix: Delete the existing work directory before rebuilding: `rm -rf "videos/2026-06-09-MARATHON_SEASON_2_..."`
   - Or change the title slightly (e.g., append `_GAMEPLAY` or `_V2`) to force a fresh work directory and fresh trailer download.
 - **Hard source-size guard:** If the selected trailer source exceeds 500 MB, stop before download and reconsider format/title. Surface the size issue to the user before retrying. This prevents multi-minute waste on unsuitable footage.
 - **Fact-check game-specific details before invoking the builder.** Verify map names, modes, and content additions from authoritative/official sources. Do not invent or reuse stale facts.
@@ -589,6 +629,7 @@ This removes manual-to-STT drift and spelling mismatch risk. The builder must ac
 - The title, script, narration, and footage must always refer to the exact same single game/topic with verified facts. If any fact changes, stop and rebuild with corrected copy.
 
 **Age-gated YouTube Videos (2026-06-11):** Official CoD/Warzone trailers are frequently age-restricted, causing `yt-dlp` to fail with "Sign in to confirm your age."
+
 - **Workaround 1:** Use `--extractor-args "youtube:player_client=android"` with format 18 (360p MP4) to bypass age gate. Acceptable for commentary/analysis fallback footage.
 - **Workaround 2:** Use non-age-restricted commentary/breakdown videos (e.g., creator analysis of the announcement) as trailer source when official trailer is gated.
 - **Workaround 3:** Search for same official trailer under different video IDs/regional uploads (see `references/trailer-agegate-workaround-2026-06-10.md`).
@@ -657,12 +698,14 @@ Warns from 2026-06-06: ffmpeg can report subtitle burn success while the rendere
 ## Proven Render References
 
 These outputs reflect proof-of-working builds captured in earlier sessions:
+
 - `videos/TO_UPLOAD/battlefield-6-season-3.mp4` — 68.000s, 21.2 MB, rendered with `en-US-BrianMultilingualNeural` at `+25%`, proofread merge applied
 - `CROSSFIRE_REVEAL_LOOKS_JAWDROPPING_#CROSSFIRE_#GAMING_#SHOOTER_#FPS_#TPS_#SUMMER.mp4` — 40.324s, 13.7 MB, verified final MP4 delivery
 
 ## Output Verification Before Reporting
 
 Required checks before claiming a video build complete:
+
 1. Confirm final MP4 exists in `videos/TO_UPLOAD/` with size >= 1 MB and duration >= expected minimum.
 2. Confirm the latest work dir matches the same render run, by comparing `captions.ass`, `audio/voiceover.mp3`, and `clips/reordered.mp4` timestamps to the final MP4.
 3. If any of those are older than the final MP4, that win condition is stale and the latest pipeline state is invalid.
@@ -674,7 +717,7 @@ Required checks before claiming a video build complete:
 
 ## Build Invocation Rule (No Per-Video Scripts)
 
-All builds must go through the unified entrypoint: `src/shorts_builder.py --youtube "URL" --title "Exact Title" --subtitle "Full script text 50-100 words"`. Do not create per-video build scripts in `src/scripts/`, repo root, or anywhere else. If a scratch script is created for debugging, delete it before finishing. This keeps the flow global and dynamic for easier debugging and reruns.
+All builds must go through the unified entrypoint: `src/shorts_builder.py --youtube "URL" --title "Exact Title" --subtitle "Full script text 50-150 words"`. Do not create per-video build scripts in `src/scripts/`, repo root, or anywhere else. If a scratch script is created for debugging, delete it before finishing. This keeps the flow global and dynamic for easier debugging and reruns.
 
 ## One-Shot Wrapper Rule (Parent/Orchestrator Calls)
 
@@ -715,6 +758,7 @@ Observed platform-side behavior in Telegram delivery from this environment: `sen
 **User directive:** Use any delivery method that successfully sends the final MP4 to the user. Do not lock to a single method (tmpfiles.org, native media, document). Try methods in order of reliability for the current file/situation and use the first that works.
 
 Suggested priority order (adapt per situation):
+
 1. **tmpfiles.org mirror** — reliable for files up to ~100 MB, provides direct download link
 2. **Telegram document send** — works for larger files that timeout on media send
 3. **Native Telegram media** — fastest for small files (<5 MB)
@@ -723,12 +767,14 @@ Suggested priority order (adapt per situation):
 **Agent Rule:** Default to tmpfiles.org link delivery as primary. If it fails or user reports non-receipt, immediately fall back to Telegram document send. Only use native media if file is small and previous methods have issues. Never claim "sent" without verifying the user actually receives the deliverable. Surface the exact local file path as ultimate fallback.
 
 **Verification checklist for the user:**
+
 1. Check for a paperclip/file icon in the chat (not inline player)
 2. Open Telegram Web (web.telegram.org) — often shows media the mobile app hides
 3. Restart the Telegram app or clear cache
 4. Verify logged into the same account receiving the DMs
 
 When this happens:
+
 - Do not blind-retry identical media sends.
 - Surface the exact verified local file path once, then stop.
 - Do not claim "sent" or "delivered" if only the caption text arrived successfully; the deliverable is the video file, not the message text.
@@ -740,6 +786,7 @@ When this happens:
 - Alternative delivery paths to offer the user: provide the local absolute path for manual drag-and-drop transfer, initiate manual upload with explicit permission, or compress to 480p (~1-2 MB) as a fallback.
 
 **Document fallback (validated 2026-06-11):** When media send times out, sending the same file as a Telegram document (same `MEDIA:` path) succeeds. This is the preferred fallback for files >5 MB.
+
 - Both HAEX Short (6.5 MB) and Warzone EOS Short (15 MB) timed out on media send but succeeded as documents.
 - Document delivery preserves the file for user download; inline playback is sacrificed but deliverable reaches user.
 
@@ -748,6 +795,7 @@ This rule applies whether the error reads "Timed out", "No deliverable text or m
 ## Process Hygiene
 
 When the user wants to rerun the same title after a prior build is suspected stale:
+
 1. Kill existing rebuild processes for that title before starting a fresh render.
 2. Choose one fresh render run and do not start another while the current one is still finalizing output files.
 3. After completion, do one consolidated verification pass and then report the result.
@@ -763,6 +811,7 @@ Project renamed from `MashButtonGaming` to `youtube-shorts-news-report-generator
 ## Rule Ownership: Scheduler vs Code
 
 Copy and structural constraints belong in the scheduler prompt, not in `src/shorts_builder.py`. The builder itself must stay neutral.
+
 - The cron scheduler prompt enforces: subtitle word count limit, opening phrase placement, closing engagement phrasing, and question-mark requirement.
 - `src/shorts_builder.py` must not validate content structure, hooks, closers, or engagement wording.
 - If the user asks to hardcode a rule into code, assume they may later change their mind and prefer scheduler-only enforcement unless they explicitly revert this.
@@ -772,19 +821,21 @@ Copy and structural constraints belong in the scheduler prompt, not in `src/shor
 These rules apply to both narration (`--subtitle`) and burned-in captions because the caption text is derived from the same source. Any scheduler or LLM invocation that generates subtitle text MUST follow this contract.
 
 **Opening rule:**
+
 - The very FIRST sentence is the bridge/hook.
 - It MUST END with: `and here's what you need to know.`
 - NO facts, game details, quotes, or news beats may appear before this phrase in the first sentence.
 - Example: `Battlefield 6 Season 3 Blastpoint is almost here and here's what you need to know.`
 
 **Closing rule:**
+
 - The very LAST sentence is the engagement question.
 - It MUST START with: `but what do you think?` as the complete sentence opener.
 - It MUST ALWAYS end with a question mark `?`.
 - It MUST be a direct open-ended question, not a statement trailer with a trailing `?`.
 - Example: `but what do you think? Will you jump into Terminal War at launch?`
 
-**Word count target:** 50–100 words total. ± is a valid range, not a rough guess.
+**Word count target:** 50–150 words total. ± is a valid range, not a rough guess.
 
 These are placement rules enforced by the scheduler. If generated subtitle text does not match this structure, the scheduler must revise it before invoking the builder. Do not push malformed copy into the pipeline and expect the code to fix it.
 
@@ -793,6 +844,7 @@ These are placement rules enforced by the scheduler. If generated subtitle text 
 **Critical correction from session 2026-06-13:** The user explicitly requires seeing the narration draft BEFORE any generation occurs. This is not optional.
 
 Required sequence:
+
 1. Research facts and write narration draft
 2. **Present narration draft to user for review/approval**
 3. Only on explicit "Approved" or similar confirmation, proceed to:
@@ -808,6 +860,7 @@ Violations observed: Agent generated TTS, built subtitles, and rendered video tw
 **Critical correction from session 2026-06-15:** The user explicitly requires seeing the narration draft BEFORE any generation occurs. This is not optional.
 
 Required sequence:
+
 1. Research facts and write narration draft
 2. **Present narration draft to user for review/approval**
 3. Only on explicit "Approved" or similar confirmation, proceed to:
@@ -832,7 +885,8 @@ Violations observed: Agent generated TTS, built subtitles, and rendered video tw
 **Current pipeline behavior:** 79 words at edge-tts `--rate +25%` produces ~23s audio — **below YouTube Shorts 30s minimum**.
 
 Options to hit ≥30s:
-- **Increase narration to 95–100 words** (preferred — keeps fast pacing)
+
+- **Increase narration to 95–150 words** (preferred — keeps fast pacing)
 - **Slow TTS rate**: edit `shorts_builder.py` edge-tts `--rate +25%` → `+0%` or `-10%`
 - **Add trailer segments**: builder prioritizes clips 3, 4, 5 but may need more chunks
 
@@ -841,6 +895,7 @@ Options to hit ≥30s:
 ## Fact Verification Methodology (2026-06-15)
 
 Before writing narration for leaked gaming content:
+
 1. **YouTube oEmbed API** — confirms video title/author/uploader/thumbnail/duration without API key:
    ```bash
    curl "https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=VIDEO_ID&format=json"
@@ -874,7 +929,8 @@ This constraint overrides any credit-optimization suggestions that reduce schedu
 **Current pipeline behavior:** 79-82 words at edge-tts `--rate +25%` produces ~23s audio — **below YouTube Shorts 30s minimum**.
 
 Options to hit ≥30s:
-- **Increase narration to 95–100 words** (preferred — keeps fast pacing)
+
+- **Increase narration to 95–150 words** (preferred — keeps fast pacing)
 - **Slow TTS rate**: edit `shorts_builder.py` edge-tts `--rate +25%` → `+0%` or `-10%`
 - **Add trailer segments**: builder prioritizes clips 3, 4, 5 but may need more chunks
 
@@ -885,8 +941,9 @@ Options to hit ≥30s:
 **TTS engines require punctuation for natural pauses and prosody.** The `--subtitle` text MUST include proper punctuation (commas, periods, question marks) — not all-caps run-on sentences.
 
 Builder behavior: `_sanitize_subtitle()` replaces `-` with space and `—` with `, ` but does NOT strip terminal punctuation. Ensure draft narration includes:
+
 - Commas for clause separation
-- Periods for sentence boundaries 
+- Periods for sentence boundaries
 - Question mark on final engagement question
 - Apostrophes for contractions (here's, it's, BF2042's)
 
@@ -897,6 +954,7 @@ All-caps ASS output is generated internally from the punctuated source.
 **Previous behavior:** `priority_indices = [3, 4, 5]` forced clips 3, 4, 5 (seconds 15–30 of source) into every build regardless of content relevance. User confirmed this was a one-off for a specific video, not a permanent feature.
 
 **Fix applied:** Removed priority logic entirely. All clips now fully shuffled:
+
 ```python
 # Before (hardcoded priority)
 priority_indices = [3, 4, 5]
@@ -916,6 +974,7 @@ selected = other_parts[:needed]
 ## Download Size Limit: 100MB (was 500MB)
 
 **Change:** Fallback yt-dlp format selector updated from `filesize<500M` to `filesize<100M`:
+
 ```python
 {"format": "299+140/best[filesize<100M]/best"}
 ```
@@ -927,6 +986,7 @@ selected = other_parts[:needed]
 **Critical correction from session 2026-06-15:** The user explicitly requires seeing the narration draft BEFORE any generation occurs. This is not optional.
 
 Required sequence:
+
 1. Research facts and write narration draft
 2. **Present narration draft to user for review/approval**
 3. Only on explicit "Approved" or similar confirmation, proceed to:
@@ -940,6 +1000,7 @@ Violations observed: Agent generated TTS, built subtitles, and rendered video tw
 ## Fact Verification Methodology (2026-06-15)
 
 Before writing narration for leaked gaming content:
+
 1. **YouTube oEmbed API** — confirms video title/author/uploader/thumbnail/duration without API key:
    ```bash
    curl "https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=VIDEO_ID&format=json"
@@ -955,6 +1016,7 @@ Before writing narration for leaked gaming content:
 The `web_search` / `web_extract` tools route through Nous Portal Firecrawl gateway. When Nous subscription credits are exhausted (billing error, $0 balance), **both tools fail with Payment Required** despite `web.backend: duckduckgo` and `web.use_gateway: false` in config — the tool implementation hardcodes the Nous gateway call.
 
 **Workaround 1 — curl + Bing HTML scrape:**
+
 ```bash
 curl -s --max-time 15 "https://www.bing.com/search?q=QUERY" | grep -o '"b_lineclamp[^"]*">[^<]*' | sed 's/.*>//'
 ```
@@ -971,6 +1033,7 @@ See `references/edge-cdp-web-search.md` for full implementation. Start Edge with
 **Fix:** Downgraded numpy to 2.4.0 in Hermes venv (compatible with Python 3.11). Whisper now runs on TTS audio.
 
 **Code fix in `src/shorts_builder.py`:** Extended `_word_end()` to accept `audio_duration` and extend the last word to match audio end:
+
 ```python
 def _word_end(mapped: list[dict], idx: int, audio_duration: float = None) -> tuple[float, float]:
     # ... existing logic ...
@@ -978,6 +1041,7 @@ def _word_end(mapped: list[dict], idx: int, audio_duration: float = None) -> tup
         e = audio_duration
     return s, max(e, s + 0.05)
 ```
+
 Updated call site: `timings = [_word_end(mapped, i, audio_duration) for i in range(len(mapped))]`
 
 **Verified working:** Variable timings (THE=0.06s, FIRST=0.18s, TIME=0.28s, BATTLEFIELD=0.36s, 4.=0.44s), last word extends to 23.30s (matches audio), `timing=whisper` logged.
@@ -999,7 +1063,8 @@ Updated call site: `timings = [_word_end(mapped, i, audio_duration) for i in ran
 This constraint overrides any credit-optimization suggestions that reduce scheduler cadence.
 
 ## Cron Environment Constraints
-   ```
+
+```
 3. Apply the standard output verification sequence on the produced MP4 before reporting.
 4. Treat the direct build as a valid recovery path; do not postpone video generation until scheduler state is repaired.
 
@@ -1007,3 +1072,4 @@ This constraint overrides any credit-optimization suggestions that reduce schedu
 
 - `execute_code` is blocked for cron environments. Use terminal commands directly.
 - `.env` files containing secrets are blocked by tool security policy for direct read/write. Use environment variables or alternative configuration paths when possible.
+```

@@ -5,6 +5,7 @@ For Shorts covering games in active development trouble (failed alphas, studio l
 ## Research Requirements
 
 Before drafting narration, verify from authoritative sources:
+
 - [ ] Named executives installed to oversee project (with titles)
 - [ ] Specific studio name and layoff count
 - [ ] Financial restructuring context (dollar amounts, reorg names)
@@ -24,6 +25,7 @@ Before drafting narration, verify from authoritative sources:
 **Opening (bridge):** `{Game} {Project Codename} IS IN DEVELOPMENT HELL AND HERE'S WHAT YOU NEED TO KNOW`
 
 **Facts block (plain language, full terms):**
+
 - Alpha failed quality/timeline benchmarks → N executives (names + titles) now oversee daily decisions
 - Root causes per insiders: unrealistic deadlines, poor planning, leads ignoring headquarters direction
 - Studio {Name} (heritage: {X} years on franchise) ceased game development entirely
@@ -42,7 +44,7 @@ Before drafting narration, verify from authoritative sources:
 - "ceased game development entirely" not "shifted to support"
 - "ignored headquarters and did their own thing" not "ignored HQ and went rogue"
 - "commit to the military simulation direction" not "double down on mil sim"
-- Word count target: 90-100 words (crisis stories need more facts)
+- Word count target: 90-150 words (crisis stories need more facts)
 
 ## Fact-Checking Checklist
 

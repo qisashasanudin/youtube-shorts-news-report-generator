@@ -27,7 +27,7 @@
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-06-20T18:24:37.935018+07:00",
-      "next_run_at": "2026-06-21T17:00:00+07:00",
+      "next_run_at": "2026-06-21T21:00:00+07:00",
       "last_run_at": "2026-06-21T14:50:20.196363+07:00",
       "last_status": "ok",
       "last_error": null,
@@ -63,19 +63,19 @@
       "schedule_display": "0 * * * *",
       "repeat": {
         "times": null,
-        "completed": 13
+        "completed": 15
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-06-20T21:43:33.391774+07:00",
-      "next_run_at": "2026-06-21T16:00:00+07:00",
-      "last_run_at": "2026-06-21T14:49:26.249473+07:00",
+      "next_run_at": "2026-06-21T18:00:00+07:00",
+      "last_run_at": "2026-06-21T16:02:29.249758+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
-      "deliver": "discord",
+      "deliver": "local",
       "origin": {
         "platform": "discord",
         "chat_id": "1517551596672778340",
@@ -106,19 +106,19 @@
       "schedule_display": "0 * * * *",
       "repeat": {
         "times": null,
-        "completed": 2
+        "completed": 5
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-06-21T14:30:43.383519+07:00",
-      "next_run_at": "2026-06-21T16:00:00+07:00",
-      "last_run_at": "2026-06-21T15:00:22.949842+07:00",
+      "next_run_at": "2026-06-21T18:00:00+07:00",
+      "last_run_at": "2026-06-21T17:00:33.742325+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
-      "deliver": "discord",
+      "deliver": "local",
       "origin": {
         "platform": "discord",
         "chat_id": "1517551596672778340",
@@ -130,5 +130,5 @@
       "fire_claim": null
     }
   ],
-  "updated_at": "2026-06-21T15:00:22.950288+07:00"
+  "updated_at": "2026-06-21T17:00:33.743079+07:00"
 }

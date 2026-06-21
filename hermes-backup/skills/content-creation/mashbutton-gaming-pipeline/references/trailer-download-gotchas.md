@@ -15,7 +15,7 @@ The unified builder (`src/shorts_builder.py`) handles this internally via `Youtu
 The unified entrypoint requires exactly three arguments:
 
 ```bash
-.venv\Scripts\python.exe src\shorts_builder.py --youtube "URL" --title "Exact Title" --subtitle "Narration text 50-100 words"
+.venv\Scripts\python.exe src\shorts_builder.py --youtube "URL" --title "Exact Title" --subtitle "Narration text 50-150 words"
 ```
 
 **Common mistakes:**

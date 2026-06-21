@@ -50,7 +50,7 @@ When debugging auth issues, compare against this working implementation.
 
 ## Channel Rules (MashButtonGaming)
 
-- **Subtitle word count**: 50–100 words. This is enforced in `shorts_builder.py` and should be checked in any script that generates or sanitizes subtitle text.
+- **Subtitle word count**: 50–150 words. This is enforced in `shorts_builder.py` and should be checked in any script that generates or sanitizes subtitle text.
 - **YouTube title**: never include hashtags in the title. Hashtags belong in the video description and tags only.
 - **Upload cadence**: max 1 per day if channel is under 100k subscribers to avoid splitting algorithm attention.
 - **Dead video rule**: if a Short gets less than 100 views in 48 hours, delete and reupload with a new title on a different day.

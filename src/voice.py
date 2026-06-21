@@ -31,7 +31,7 @@ def generate_voiceover(text: str, out: Path) -> float:
 
     count = len(text.split())
     if not (50 <= count <= 150):
-        raise ValueError(f"[ERROR] --subtitle must be 50-100 words; got {count} words.")
+        raise ValueError(f"[ERROR] --subtitle must be 50-150 words; got {count} words.")
 
     user_agent = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "

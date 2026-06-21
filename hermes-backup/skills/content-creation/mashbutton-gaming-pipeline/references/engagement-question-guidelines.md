@@ -52,4 +52,4 @@ Before submitting a narration with an engagement question:
 - [ ] Ends with `?` (mandatory)
 
 ## Word Count Note
-The engagement question is part of the 50–100 word narration budget. Keep the question concise (~15–20 words max) so the factual body has room.
+The engagement question is part of the 50–150 word narration budget. Keep the question concise (~15–20 words max) so the factual body has room.
