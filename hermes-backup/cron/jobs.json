@@ -1,0 +1,91 @@
+{
+  "jobs": [
+    {
+      "id": "7f2a9212bbb8",
+      "name": "gaming-news-search",
+      "prompt": "Search for the latest gaming news.\nProvide a list of up to 10 items. For each item, include:\n- Title\n- Date Created\n- Summary\n- URL\n\nIf fewer than 10 results are available, provide all available ones. Use high-quality sources like IGN, PC Gamer, GameSpot, and official developer blogs.",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 9,13,17,21 * * *",
+        "display": "0 9,13,17,21 * * *"
+      },
+      "schedule_display": "0 9,13,17,21 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 3
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-20T18:24:37.935018+07:00",
+      "next_run_at": "2026-06-21T09:00:00+07:00",
+      "last_run_at": "2026-06-20T23:44:41.156977+07:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "discord",
+      "origin": {
+        "platform": "discord",
+        "chat_id": "1517551596672778340",
+        "chat_name": "Poop / #bot / schedulers",
+        "thread_id": "1517551596672778340"
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "fire_claim": null
+    },
+    {
+      "id": "867cd3dffd68",
+      "name": "backup-memory",
+      "prompt": ",\"python3 /Users/qisashasanudin/.hermes/scripts/backup_memory.py\"",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 * * * *",
+        "display": "0 * * * *"
+      },
+      "schedule_display": "0 * * * *",
+      "repeat": {
+        "times": null,
+        "completed": 9
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-20T21:43:33.391774+07:00",
+      "next_run_at": "2026-06-21T09:00:00+07:00",
+      "last_run_at": "2026-06-21T07:04:19.972623+07:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "discord",
+      "origin": {
+        "platform": "discord",
+        "chat_id": "1517551596672778340",
+        "chat_name": "Poop / #bot / schedulers",
+        "thread_id": "1517551596672778340"
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "fire_claim": null
+    }
+  ],
+  "updated_at": "2026-06-21T08:00:06.220067+07:00"
+}
