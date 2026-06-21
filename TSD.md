@@ -1,197 +1,98 @@
-# TSD - Toolchain/Software/Compatibility documentation for youtube-shorts-news-report-generator
+# TSD — Toolchain, Software, and Compatibility for youtube-shorts-news-report-generator
 
-## 1. Overview
+## Purpose
 
-This TSD defines the exact toolchain, dependency versions, platform requirements, runtime environment, and compatibility boundaries for this repository.
+This document defines the exact runtime dependencies, compatibility requirements, and operational conventions for the current Shorts builder implementation.
 
-Goal: reproduce `python src/shorts_builder.py` exactly on a clean compatible system, and support the full MashButtonGaming editorial automation workflow.
+## Active builder entrypoint
 
-System roles:
+- `python3 src/shorts_builder.py --youtube "<url>" --title "<TITLE>" --subtitle "<text>"`
+- `src/shorts_builder.py` delegates to `src/main.py` and the modular source files under `src/`.
 
-- `src/shorts_builder.py`: **single one-shot video renderer** (only builder in repo)
-- `src/editorial_state.py`: deduplication and daily upload counter
-- `src/scripts/youtube_upload.py`: optional manual YouTube upload helper
-- `src/scripts/tiktok_upload.py`: optional TikTok metadata package generator
-- Scheduled cron jobs (Hermes agent):
-  - `80c55b5a2392` — news scheduler (4×/day, browser toolset, Hermes CDP)
-  - `bab0abf9f152` — watchdog (every 15m, health monitoring)
-  - `477b924aca59` — cleanup (every 15m, temp folder cleanup)
-  - `8c2f7219609a` — memory backup (every 15m, hourly gap backup)
+## Repository structure
 
-## 2. Canonical runtime
+- `src/shorts_builder.py` — launcher entrypoint.
+- `src/main.py` — build orchestration.
+- `src/config.py` — repo path resolution, ffmpeg/ffprobe discovery, font path constants.
+- `src/utils.py` — subprocess helper, duration probe, slugifier, and timestamp functions.
+- `src/download.py` — YouTube trailer download logic.
+- `src/voice.py` — TTS audio generation and voiceover duration measurement.
+- `src/edit.py` — clip extraction, shuffle logic, concat assembly.
+- `src/subtitles.py` — ASS caption generation with optional Whisper timing.
+- `src/render.py` — final subtitle burn and render.
+- `src/editorial_state.py` — optional duplicate/check/count CLI helper.
+- `src/requirements.txt` — Python dependency manifest.
+- `assets/fonts/whoosh/` — font assets required for ASS rendering.
+- `videos/TO_UPLOAD/` — final MP4 output.
 
-- Primary runtime: Windows with the project venv at `.venv`
-  - create: `python -m venv .venv`
-  - activate: `.venv\Scripts\python.exe ...`
-  - pip install from `src/scripts/requirements.txt` inside this venv
-- The builder runs from the repo root using the venv Python
-- Cron jobs run under the same workdir and venv via Hermes agent scheduler
+## Platform and runtime
 
-Host platform baseline
+- Recommended Python: 3.11 or higher.
+- Verified: Python 3.11, 3.13.
+- Avoid Python 3.9 for new installs; upstream packages warn against it.
+- The builder runs from the repo root.
+- Use a virtual environment for dependencies.
 
-- Host OS: Windows 10/11
-- Run commands from: PowerShell, cmd, or git-bash (MSYS)
-- Long-running tools including ffmpeg and python pipelines should run from the venv
-- Encoding: UTF-8 is the default on modern Windows
-
-## 3. Python
-
-Runtime:
-
-- Windows native: Python 3.11.15 / 3.13 verified
-- Preferred venv-style isolation: use the project `.venv`
-
-Run:
+## Python environment setup
 
 ```bash
-.venv\Scripts\python.exe -m pip install -r src/scripts/requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install --upgrade pip
+python3 -m pip install -r src/requirements.txt
 ```
 
-## 4. Python dependencies
+## Python dependencies
 
-Source of truth: `src/scripts/requirements.txt`
-
-Current contents:
+Current dependency list from `src/requirements.txt`:
 
 - edge-tts >= 0.4.0
 - faster-whisper >= 1.0.0
+- whisperx >= 1.3.0
 - yt-dlp >= 2025.0.0
 - requests >= 2.28.0
 - feedparser >= 6.0.0
 - python-dotenv >= 1.0.0
 
-Run:
+## External tool requirements
 
-```bash
-.venv\Scripts\python.exe -m pip install -r src/scripts/requirements.txt
-```
+- `ffmpeg` — must support `libass`, `libfreetype`, `libx264`, and `aac`.
+- `ffprobe` — used for duration probing.
+- `edge-tts` CLI is optional but preferred for TTS if installed.
+- Local `piper` executable support exists as a fallback if `piper` is installed and the `apps/piper/piper.exe` path is available.
 
-Known environment behavior:
+## Important runtime details
 
-- `yt-dlp` CLI may not be on PATH; builder uses Python API (`from yt_dlp import YoutubeDL`)
-- Edge TTS binary may be installed in a venv; builder also searches venv/repo paths
-- `faster-whisper` is used for word-level STT alignment in caption generation
+- `config.py` searches for `ffmpeg`/`ffprobe` on PATH and common macOS Homebrew locations.
+- Font rendering requires `assets/fonts/whoosh/`; missing fonts abort startup.
+- Intermediate files are written under `videos/<timestamp>-<slug>/`.
+- Final output is written to `videos/TO_UPLOAD/`.
+- `src/editorial_state.py` is not required for main builder execution.
 
-## 5. ffmpeg
+## Command-line behavior
 
-Requirement:
+- `--youtube` — required trailer URL.
+- `--title` — required exact title / filename stem.
+- `--subtitle` — required narration text, 50-150 words.
+- `--shuffle` — default enabled.
+- `--no-shuffle` — disables random trailer segment reordering.
 
-- ffmpeg build with `libass`, `libfreetype`, `libfribidi`, `libharfbuzz`
-- Verified build: `ffmpeg 8.1.1-full_build-www.gyan.dev`
-- Must support H.264 (`libx264`) and AAC encoding
-- Stream copy (`-c copy`) is used for all intermediate edit/trim steps; only the final subtitle-burned output is re-encoded to H.264/AAC
+## Validation checklist
 
-Notes:
-
-- Caption/filter path uses repo-relative paths; working directory must be repo root:
-  ```text
-  -vf [0:v]...ass={relative_ass_path}:fontsdir={relative_font_path}
-  ```
-- Vertical output: 720x1280 with `scale + crop`
-
-## 6. TTS
-
-Primary engine: Edge TTS
-
-Settings used:
-
-- Voice: `en-US-BrianMultilingualNeural`
-- Rate: `+25%`
-- Output: MP3 monaural 24 kHz
-
-Fallback:
-
-- Piper local TTS is supported in code via `apps/piper/piper.exe` and ONNX model under `assets/piper/`, but that path is not required for the current baseline build
-
-Internet requirement:
-
-- Edge TTS reaches outbound Microsoft endpoints
-- yt-dlp downloads YouTube source media
-- Firewall/proxy must allow these endpoints
-
-## 7. Fonts + subtitle rendering
-
-Fonts:
-
-- Primary font: `assets/fonts/whoosh/Whoosh.otf`
-- Alternate: `assets/fonts/whoosh/Whoosh.ttf`
-
-Subtitle format:
-
-- ASS events generated by `generate_ass()` with **per-word timing** from faster-whisper
-- Wrapped with `fontsdir` to ensure consistent lookup across OS versions
-- One-word uppercase captions; bottom-center alignment; bold/heavy outline style
-- Alignment uses SequenceMatcher threshold 0.75 with window=10 for STT-to-script alignment when Whisper word timestamps are available; unmatched words do not consume a cursor
-
-Known validation status:
-
-- ASS generation succeeds and ffmpeg reports the subtitle burn returns code 0
-- Automated OCR-based subtitle visibility check was used during development; final acceptance should include a human spot check of outputs on the target machine
-
-## 8. Build outputs
-
-- Working directories: `videos/<timestamp>_<slug>/`
-- Final files: `videos/TO_UPLOAD/<TITLE>.mp4`
-- `videos/` is gitignored to keep the repository light
-- Daily cleanup job removes temp/build folders after 03:00; `videos/TO_UPLOAD` is preserved
-
-## 9. Editorial automation
-
-State file:
-
-- `editorial_state.json` tracks used stories and daily upload counts (gitignored)
-- `src/editorial_state.py` provides `check`, `count`, and `mark` commands
-
-Cron jobs (Hermes agent):
-
-- `80c55b5a2392` — news scheduler: 4×/day, uses Hermes CDP (Edge headless on port 9222) for Bing News search, delivers 10 stories to Discord
-- `bab0abf9f152` — watchdog: every 15m, monitors scheduler/cleanup/backup health
-- `477b924aca59` — cleanup: every 15m, removes temp folders under `videos/`
-- `8c2f7219609a` — memory backup: every 15m, backs up Hermes memory if >24h gap
-
-Policy rules enforced by the Hermes scheduler prompt:
-
-- Coverage: Tactical shooter, FPS/TPS, extraction shooter news
-- Primary franchises: Battlefield, Call of Duty, Escape from Tarkov, Rainbow Six Siege, Arma Reforger, Squad
-- News age limit: last 7 days only (enforced via search query `tbs=qdr:w`)
-- Source priority: official sources first, then trusted publications/insiders
-- Duplicate prevention: URL and normalized title checks across runs
-- Story scoring with franchise multipliers; ignore stories scoring below 50
-- Daily upload cap: max 8, prefer 4-8, do not create filler
-- Script format: sensational opening, factual body, closing with `but what do you think?`
-- Title format: concise news-style, bombastic/clickbaity
-- Footage selection: official reveal trailer > official gameplay > official update > official dev video
-
-## 10. Validation checklist for a fresh system
-
-- Install ffmpeg with libass/freetype/harfbuzz
-- Install Python 3.11+ or 3.13
-- `python -m venv .venv`
-- `.venv\Scripts\python.exe -m pip install -r src/scripts/requirements.txt`
-- Clone repo, keep `assets/` and `client_secrets.json` out of git
-- Run example one-shot build with a public YouTube trailer URL:
+- Confirm `python3` is installed and available.
+- Confirm `ffmpeg` and `ffprobe` are available on PATH or via macOS Homebrew paths.
+- Confirm `assets/fonts/whoosh/` exists with font files.
+- Create and activate `.venv`.
+- Install dependencies from `src/requirements.txt`.
+- Run:
   ```bash
-  .venv\Scripts\python.exe src/shorts_builder.py --youtube "https://youtu.be/..." --title "TEST TITLE" --subtitle "Fifty to one hundred words of narration here..."
+  python3 src/shorts_builder.py --youtube "https://youtu.be/..." --title "TEST TITLE" --subtitle "Fifty words of narration ..."
   ```
-- Confirm `videos/TO_UPLOAD/*.mp4` exists and duration is within Shorts limits (≤60s)
-- Spot-check final short for burned-in captions at multiple timestamps
-- Verify Hermes cron jobs are scheduled: scheduler, watchdog, cleanup, memory backup
+- Verify final MP4 is written to `videos/TO_UPLOAD/` and the build completes without font/tool errors.
 
-## 11. Known/remaining risks
+## Notes on repo artifacts
 
-- Offline execution is not supported unless Piper paths and assets are packaged
-- Caption styling assumes Whoosh font; changing fonts may require caption template updates
-- Builds depend on stable YouTube access and Edge TTS availability
-- Discord media delivery may time out on large files; retry or use tmpfiles.org
-- YouTube auto-upload is disabled in the scheduler; manual upload only via `youtube_upload.py`
-- TikTok automation is not implemented. If TikTok support is added later, it should be manual-first with explicit approval before upload, and the same credential-safety rules apply.
-- Hermes gateway CDP requires Edge running with `--remote-debugging-port=9222`; auto-launched by scheduler but survives laptop restarts only via next cron run
-
-## 12. YouTube integration notes
-
-- Channel: https://youtube.com/@mashbuttongaming
-- Manual upload only via `src/scripts/youtube_upload.py`
-- `youtube_upload.py` default privacy is `private`
-- Required OAuth files are not tracked in git: `client_secrets.json` and `token.json`
-- Scheduler/builder behavior is build-and-deliver, not auto-upload
-- Reject any selected trailer source larger than `500 MB`
+- `hermes-backup/` contains documentation, skill backups, and legacy references; it is not part of the active builder runtime.
+- There is no active `run_short_builder.sh` wrapper in this repo.
+- There is no active `src/scripts/` build helper in this repo.
+- Upload automation is outside the current repo scope.

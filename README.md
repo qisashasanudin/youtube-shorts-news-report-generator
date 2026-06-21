@@ -1,79 +1,90 @@
 # MashButtonGaming YouTube Shorts News Generator
 
-One-shot builder for vertical game news Shorts from official trailer footage.
-The pipeline produces a ready-to-upload MP4 from three inputs: trailer URL, title, and 50–100 word narration.
+One-shot builder that converts a YouTube trailer URL, a title, and a short narration script into a vertical Shorts-ready MP4 with burned-in captions.
 
-## Platform Priority
+## What this repo contains
 
-- **TikTok**: primary platform. Target aggressive posting cadence for growth.
-- **YouTube Shorts**: secondary/selective uploads. Use only for high-signal stories.
-- Same finished video asset can be reused across both platforms.
-
-## Project Layout
-
-- `src/shorts_builder.py` — **single unified renderer**. Downloads trailer via yt-dlp, generates TTS narration (edge-tts Brian +25%), builds word-level ASS captions via faster-whisper, selects shuffled 5s trailer chunks, and outputs the final 720×1280 MP4.
-- `src/editorial_state.py` — tracks used stories and per-day upload counts.
-- `src/scripts/youtube_upload.py` — manual upload helper for YouTube.
-- `src/scripts/tiktok_upload.py` — generates TikTok-ready metadata package from an existing MP4.
-- `videos/TO_UPLOAD/` — final MP4 output with a clean title-based filename.
-- `videos/tiktok_meta/` — TikTok metadata JSON packages ready for manual/assisted upload.
-- `editorial_state.json` — editorial ledger (gitignored).
+- `src/shorts_builder.py` — single entrypoint launcher for the current builder.
+- `src/main.py` — orchestrates download, voiceover, editing, subtitle generation, rendering, and final verification.
+- `src/config.py` — repo root and asset path resolution, plus ffmpeg/ffprobe discovery.
+- `src/utils.py` — shared subprocess helpers, duration probing, slugification, and timestamp functions.
+- `src/download.py` — trailer download logic using `yt_dlp`.
+- `src/voice.py` — TTS/voiceover generation via local `piper`, `edge-tts` CLI, or `edge_tts` Python fallback.
+- `src/edit.py` — trailer clip extraction, optional shuffle, selection, and concat assembly.
+- `src/subtitles.py` — ASS caption generation with per-word timing.
+- `src/render.py` — subtitle burn and final 720×1280 MP4 render.
+- `src/editorial_state.py` — optional CLI helper for duplicate checks and daily upload counting.
+- `src/requirements.txt` — Python dependency list.
+- `assets/fonts/whoosh/` — font assets required for ASS subtitle rendering.
+- `videos/TO_UPLOAD/` — destination for final output files.
+- `hermes-backup/` — backup documentation and legacy skill files; not required to run the builder.
 
 ## Architecture
 
+This project no longer uses a shell wrapper or a `src/scripts/` build helper. The entire active pipeline is now rooted in `src/` with one launcher.
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  HERMES CRON (job 80c55b5a2392) — runs 4×/day               │
-│  → browser_navigate → Bing News (CDP on port 9222)          │
-│  → extracts 10 fresh shooter/FPS stories                   │
-│  → delivers formatted list to Discord                       │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼ (you pick one in Discord)
-┌─────────────────────────────────────────────────────────────┐
-│  python src/shorts_builder.py                               │
+│  python3 src/shorts_builder.py                               │
 │    --youtube "https://youtu.be/..."                         │
 │    --title "BOMBASTIC CLICKBAIT TITLE"                      │
-│    --subtitle "50-100 word narration, plain words..."       │
-│  → videos/TO_UPLOAD/{TITLE}.mp4 (720×1280, subs + audio)    │
+│    --subtitle "50-150 word narration script text"           │
+│    [--no-shuffle]                                            │
+│  → videos/TO_UPLOAD/<slugged-title>.mp4                      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**No web search logic in source code** — all search is handled by Hermes gateway CDP in cron jobs.
-**Single source file**: `src/shorts_builder.py` (527 lines).
+## How to run
 
-## Workflow
-
-1. Hermes cron delivers 10 candidate stories to Discord (09:00, 12:00, 15:00, 18:00).
-2. You pick one story from the list.
-3. Run the builder with 3 inputs:
+1. Create and activate a Python virtual environment from the repo root:
    ```bash
-   python src/shorts_builder.py --youtube "<url>" --title "<TITLE>" --subtitle "<50-150 words>"
+   python3 -m venv .venv
+   source .venv/bin/activate
    ```
-4. Finished MP4 lands in `videos/TO_UPLOAD/`.
-5. (Optional) Upload to TikTok/YouTube via helper scripts.
+2. Install dependencies:
+   ```bash
+   python3 -m pip install -r src/requirements.txt
+   ```
+3. Run the builder:
+   ```bash
+   python3 src/shorts_builder.py --youtube "<url>" --title "<TITLE>" --subtitle "<50-150 word narration>"
+   ```
+4. Optional: disable random trailer shuffling:
+   ```bash
+   python3 src/shorts_builder.py --youtube "<url>" --title "<TITLE>" --subtitle "<text>" --no-shuffle
+   ```
 
-## Editorial Rules
+## Runtime behavior
 
-- Trailer sources must be official. Prefer reveal → gameplay → update → dev video.
-- Maximum source trailer size: 500 MB.
-- Story freshness limit: 7 days (enforced by Hermes search query).
-- Deduplicate against `editorial_state.json`.
-- Subtitle text: **50–100 words** (for ~20s narration, better view-to-swipe).
-- Title: bombastic, sensorial, clickbaity — mention franchise/key terms.
-- Final MP4 filename matches the title text.
-- Hashtags stripped from YouTube title → moved to description/tags.
+- Downloads a YouTube trailer via `yt_dlp`.
+- Generates narration audio with either `piper`, `edge-tts` CLI, or `edge_tts` Python.
+- Splits the source trailer into 5-second clip segments.
+- Optionally shuffles segments before selecting the final edit.
+- Builds ASS captions and burns them into a vertical 720×1280 MP4.
+- Writes the final asset to `videos/TO_UPLOAD/`.
 
-## Scheduler Behavior
+## Output paths
 
-- Cron job `80c55b5a2392` runs 4×/day via Hermes agent (browser toolset).
-- Uses Hermes CDP (Edge headless on port 9222) for Bing News search.
-- No local search code in repo — all web search is gateway-managed.
-- Delivers story list to Discord for human selection.
+- Intermediate working folder: `videos/<YYYY-MM-DD>-<SLUGIFIED_TITLE>/`
+- Final output: `videos/TO_UPLOAD/<SLUGIFIED_TITLE>.mp4`
+- The builder uses clean title slugification to name the final MP4.
 
-## Upload Helper Notes
+## Requirements and environment
 
-- `youtube_upload.py` is manual-first. Default privacy: private.
-- `tiktok_upload.py` generates a metadata package.
-- Hashtags removed from YouTube title, moved to description + tags.
-- Requires `client_secrets.json` and `token.json` for OAuth.
+- Python 3.11+ is recommended. Python 3.9 is deprecated by upstream dependencies.
+- `ffmpeg` and `ffprobe` must be installed and discoverable on PATH, or available via Homebrew locations on macOS.
+- `assets/fonts/whoosh/` must exist and contain font files for ASS rendering.
+- `src/requirements.txt` is the single dependency source of truth for Python packages.
+
+## Subtitle and script rules
+
+- `--subtitle` must contain between 50 and 150 words.
+- The builder generates one caption line per word in uppercase.
+- The word timing is derived from `faster-whisper` when available, otherwise fallback timing is used.
+
+## Notes
+
+- `src/shorts_builder.py` is intentionally small; it imports and runs the implementation from `src/main.py`.
+- No shell wrapper is required or expected.
+- `hermes-backup/` contains archival skill documentation, not the active builder code path.
+- Uploading final MP4s to TikTok or YouTube is outside this repository’s current runtime scope.
