@@ -6,6 +6,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import asyncio
 import os
 import random
 import shutil
@@ -24,6 +25,41 @@ if not DEFAULT_FONT_DIR.exists():
     sys.exit(f"[ERROR] Whoosh font dir missing: {DEFAULT_FONT_DIR}")
 
 
+def _find_tool(name: str) -> Path:
+    if name == "ffmpeg":
+        candidates = [shutil.which("ffmpeg-full") or ""]
+        if sys.platform == "darwin":
+            candidates.extend([
+                "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg",
+                "/usr/local/opt/ffmpeg-full/bin/ffmpeg",
+            ])
+        candidates.append(shutil.which("ffmpeg") or "")
+    elif name == "ffprobe":
+        candidates = [shutil.which("ffprobe-full") or ""]
+        if sys.platform == "darwin":
+            candidates.extend([
+                "/opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+                "/usr/local/opt/ffmpeg-full/bin/ffprobe",
+            ])
+        candidates.append(shutil.which("ffprobe") or "")
+    else:
+        candidates = [shutil.which(name) or ""]
+
+    for candidate in candidates:
+        if candidate:
+            candidate_path = Path(candidate)
+            if candidate_path.exists():
+                return candidate_path
+
+    raise FileNotFoundError(
+        f"[ERROR] Required tool '{name}' was not found in PATH or Homebrew opt directories."
+    )
+
+
+FFMPEG = _find_tool("ffmpeg")
+FFPROBE = _find_tool("ffprobe")
+
+
 def run(cmd, check=False, **kwargs):
     if isinstance(cmd, str):
         print(f"[RUN] {cmd}")
@@ -35,7 +71,7 @@ def run(cmd, check=False, **kwargs):
 def probe_duration(path: Path) -> float:
     out = subprocess.check_output(
         [
-            "ffprobe",
+            str(FFPROBE),
             "-v", "error",
             "-show_entries", "format=duration",
             "-of", "default=noprint_wrappers=1:nokey=1",
@@ -154,21 +190,34 @@ def generate_voiceover(text: str, out: Path) -> float:
             raise MediaExtractionError(stderr.decode("utf-8", "ignore"))
         return probe_duration(out)
     edge_tts = shutil.which("edge-tts")
-    if edge_tts is None:
-        edge_tts = REPO / "apps/edge-tts.exe"
-    if not Path(edge_tts).exists():
-        raise MediaExtractionError("No TTS engine found (Piper or edge-tts)")
-    cmd = [
-        str(edge_tts),
-        "--voice", "en-US-BrianMultilingualNeural",
-        "--rate", "+25%",
-        "--text", text,
-        "--write-media", str(out),
-    ]
-    res = run(cmd)
-    if res.returncode != 0:
-        raise MediaExtractionError("edge-tts failed")
-    return probe_duration(out)
+    if edge_tts is not None and Path(edge_tts).exists():
+        cmd = [
+            str(edge_tts),
+            "--voice", "en-US-BrianMultilingualNeural",
+            "--rate", "+25%",
+            "--text", text,
+            "--write-media", str(out),
+        ]
+        res = run(cmd)
+        if res.returncode != 0:
+            raise MediaExtractionError("edge-tts CLI failed")
+        return probe_duration(out)
+
+    try:
+        import edge_tts as edge_tts_module
+
+        async def _synthesize() -> None:
+            communicate = edge_tts_module.Communicate(
+                text,
+                "en-US-BrianMultilingualNeural",
+                rate="+25%",
+            )
+            await communicate.save(str(out))
+
+        asyncio.run(_synthesize())
+        return probe_duration(out)
+    except Exception as exc:  # pragma: no cover
+        raise MediaExtractionError(f"edge-tts synthesis failed: {exc}")
 
 
 def _find_downloaded_file(out_dir: Path) -> Path:
@@ -215,7 +264,7 @@ def build_segmented_edit(
         seg_dur = clip_secs if i < max_clips - 1 else max(0.5, source_dur - ss)
         run(
             [
-                "ffmpeg",
+                str(FFMPEG),
                 "-y",
                 "-ss",
                 f"{ss:.3f}",
@@ -246,7 +295,7 @@ def build_segmented_edit(
 
     run(
         [
-            "ffmpeg",
+            str(FFMPEG),
             "-y",
             "-f",
             "concat",
@@ -265,7 +314,7 @@ def build_segmented_edit(
         trimmed = reordered.with_suffix(".trimmed.mp4")
         run(
             [
-                "ffmpeg",
+                str(FFMPEG),
                 "-y",
                 "-i",
                 str(reordered),
@@ -315,11 +364,9 @@ def generate_ass(
     per_word = audio_duration / max(1, len(words))
     word_dur = per_word * 0.95
 
-    timings: list[tuple[float, float]] = []
-    stt_words: list[str] = []
+    word_data: list[dict] = []
     used = "fallback"
     if voiceover and voiceover.exists() and audio_duration > 0:
-        mapped: list[dict] = []
         try:
             from faster_whisper import WhisperModel
 
@@ -332,25 +379,31 @@ def generate_ass(
                     continue
                 for w in seg.words:
                     word = w.word.strip()
+                    # Whisper may emit leading dashes from tokenization like '-founder'.
+                    word = word.lstrip("-").strip()
                     if not word:
                         continue
                     start = max(w.start, 0.0)
                     end = max(w.end, start)
-                    mapped.append({"word": word, "start": start, "end": end})
-        except Exception:
-            mapped = []
-        if mapped:
-            stt_words = [w["word"] for w in mapped]
-            timings = [_word_end(mapped, i, audio_duration) for i in range(len(mapped))]
-            words = stt_words
-            used = "whisper"
+                    word_data.append({"word": word, "start": start, "end": end})
+            if word_data:
+                used = "whisper"
+                for i in range(len(word_data)):
+                    s, e = _word_end(word_data, i, audio_duration)
+                    word_data[i]["start"] = s
+                    word_data[i]["end"] = e
+        except Exception as exc:
+            print(f"[WARN] faster_whisper timing unavailable: {exc}")
+            word_data = []
 
-    if not timings:
-        timings = []
-        for i in range(len(words)):
+    if not word_data:
+        for i, word in enumerate(words):
             s = max(0.0, i * per_word)
             e = s + word_dur
-            timings.append((s, e))
+            if i + 1 == len(words) and audio_duration is not None and e < audio_duration:
+                e = audio_duration
+            word_data.append({"word": word, "start": s, "end": e})
+
     lines = [
         "[Script Info]",
         "Title: MashButtonGaming",
@@ -368,20 +421,15 @@ def generate_ass(
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
     ]
 
-    for i, w in enumerate(words):
-        if i < len(timings):
-            s, e = timings[i]
-        else:
-            s = max(0.0, i * per_word)
-            e = s + word_dur
-        lines.append(
-            f"Dialogue: 0,{_ts(s)},{_ts(e)},Default,,,,,,{w.upper()}\r\n"
-        )
+    for item in word_data:
+        s = item["start"]
+        e = item["end"]
+        text_line = item["word"].upper()
+        lines.append(f"Dialogue: 0,{_ts(s)},{_ts(e)},Default,,,,,,{text_line}\r\n")
 
     ass_path.parent.mkdir(parents=True, exist_ok=True)
     ass_path.write_text("\r\n".join(lines) + "\r\n", encoding="utf-8")
-    used = "whisper" if timings else "fallback"
-    print(f"[OK] ASS: {ass_path}  words={len(words)}  timing={used}")
+    print(f"[OK] ASS: {ass_path}  words={len(word_data)}  timing={used}")
 
 
 def _relink(src: Path, dst: Path) -> Path:
@@ -402,7 +450,7 @@ def _render_burn_subs(
     out: Path,
 ) -> None:
     dur_cmd = [
-        "ffprobe", "-v", "error",
+        str(FFPROBE), "-v", "error",
         "-show_entries", "format=duration",
         "-of", "default=noprint_wrappers=1:nokey=1",
         str(audio),
@@ -419,13 +467,13 @@ def _render_burn_subs(
     font_path = font_dir.resolve().relative_to(REPO).as_posix()
     out_path = out.resolve().relative_to(REPO).as_posix()
 
+    out.parent.mkdir(parents=True, exist_ok=True)
     cmd = [
-        "ffmpeg", "-y",
+        str(FFMPEG), "-y",
         "-i", vm,
         "-i", am,
-        "-filter_complex",
-        f"[0:v]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,ass={ass_path}:fontsdir={font_path}[v]",
-        "-map", "[v]",
+        "-vf", f"scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,ass=filename={ass_path}:fontsdir={font_path}",
+        "-map", "0:v",
         "-map", "1:a",
         "-c:v", "libx264",
         "-c:a", "aac",

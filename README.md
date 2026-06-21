@@ -48,7 +48,7 @@ The pipeline produces a ready-to-upload MP4 from three inputs: trailer URL, titl
 2. You pick one story from the list.
 3. Run the builder with 3 inputs:
    ```bash
-   python src/shorts_builder.py --youtube "<url>" --title "<TITLE>" --subtitle "<50-100 words>"
+   python src/shorts_builder.py --youtube "<url>" --title "<TITLE>" --subtitle "<50-150 words>"
    ```
 4. Finished MP4 lands in `videos/TO_UPLOAD/`.
 5. (Optional) Upload to TikTok/YouTube via helper scripts.
