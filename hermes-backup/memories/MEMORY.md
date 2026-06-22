@@ -9,3 +9,5 @@ Scheduler: 4x daily at 9/13/17/21, 10 stories to Discord; primary search now ddg
 Web research workflow: Use ddgs search (already default in config) to find candidate URLs, then use terminal + curl to fetch raw HTML, then execute_code with BeautifulSoup/lxml to parse and extract clean content. No Firecrawl, gateway, or CDP required. Skill created: local-html-extraction.
 §
 Sync memories to a local directory (Project/hermes-backup) for backup purposes outside of the standard tool loop.
+§
+To bypass YouTube 403/Forbidden errors for restricted content, prioritize using specific headers (Desktop User-Agent, Referer) and the `player_client` configuration discovered in the Media Pipeline workflow.

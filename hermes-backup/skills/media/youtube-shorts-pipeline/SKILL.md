@@ -35,7 +35,6 @@ USE THIS when the user wants to generate a new Short from a script/topic within 
 ## Unique subtopic uniqueness rule
 
 When repeating a game across shorts, de-duplicate before rendering:
-
 - Inspect the project's recent shorts/output history.
 - If an existing sub-topic already matches the candidate topic, generate a different subtopic for the same game instead.
 - Same-game reuse is allowed only when the sub-topic will be meaningfully different from prior shorts.
@@ -107,7 +106,6 @@ The project includes a working YouTube upload helper at `src/scripts/youtube_upl
 **CLI args**: `video_path`, `--title`, `--privacy` (private|public|unlisted), `--description`, `--tags`.
 
 **Prerequisites**:
-
 1. Create Google Cloud project → enable YouTube Data API v3 → OAuth consent screen → Desktop app credentials
 2. Save credentials as `client_secrets.json` in project root
 3. Run once to authorize; `token.json` is created and reused
@@ -118,17 +116,16 @@ See `youtube-api-setup` skill for OAuth troubleshooting patterns.
 
 TikTok Content Posting API requires a separate module. Key differences from YouTube:
 
-| Aspect          | YouTube                     | TikTok                                             |
-| --------------- | --------------------------- | -------------------------------------------------- |
-| Auth            | Google OAuth 2.0            | TikTok OAuth 2.0 (different endpoints)             |
-| Upload          | Single `videos.insert` call | 2-step: create session → PUT chunks → publish      |
-| Scopes          | `youtube.upload`            | `video.upload`, `video.publish`, `user.info.basic` |
-| Token expiry    | No expiry (refresh token)   | Access: 2h, Refresh: 1 year                        |
-| Rate limits     | Generous                    | ~100 req/day (sandbox), higher in prod             |
-| Review required | No (standard OAuth)         | Yes (App Review + demo video)                      |
+| Aspect | YouTube | TikTok |
+|--------|---------|--------|
+| Auth | Google OAuth 2.0 | TikTok OAuth 2.0 (different endpoints) |
+| Upload | Single `videos.insert` call | 2-step: create session → PUT chunks → publish |
+| Scopes | `youtube.upload` | `video.upload`, `video.publish`, `user.info.basic` |
+| Token expiry | No expiry (refresh token) | Access: 2h, Refresh: 1 year |
+| Rate limits | Generous | ~100 req/day (sandbox), higher in prod |
+| Review required | No (standard OAuth) | Yes (App Review + demo video) |
 
 **To build `src/scripts/tiktok_upload.py`** (after TikTok app approval):
-
 1. OAuth flow → saves `tiktok_token.json` (client_key, client_secret, refresh_token)
 2. `POST /v2/video/upload/` → get `upload_url` + `video_id`
 3. `PUT` video chunks to `upload_url` with `Content-Range` headers
@@ -140,7 +137,6 @@ TikTok Content Posting API requires a separate module. Key differences from YouT
 ## WSL venv command pattern
 
 Template:
-
 ```bash
 cd /mnt/c/Users/qthas/Programming/Belajar/YouTube/youtube-shorts-news-report-generator
 python3 -m venv ~/mashbutton-venv
@@ -163,7 +159,6 @@ Use Windows-native paths only:
 `yt-dlp` is installed for the active Python/Pip in the active venv. Prefer in-process use from `src/shorts_builder.py`; only fall back to shell form when the venv Scripts directory is on PATH.
 
 Source size cap:
-
 - Reject trailer candidates larger than `500 MB` before download.
 - If a selected source exceeds that cap, stop and reconsider the candidate/source instead of downloading.
 
@@ -327,17 +322,14 @@ For this project, new Shorts are NOT built automatically. The scheduler must sto
 **NEW: Draft-first workflow (2026-06-15)** — Before any build, always send the **narration draft** to the user for review. The user will often request revisions (fact corrections, tone adjustments, punctuation fixes). Do NOT run `shorts_builder.py` until the user explicitly approves the draft.
 
 Telegram delivery status must be reported truthfully:
-
 - A successfully built MP4 in `videos/TO_UPLOAD/` is a local build artifact, not a delivered video.
 - `send_message` with `MEDIA:` that returns a timeout warning means the adapter stalled during upload; do not treat it as delivery success and do not blind-retry the same call.
 
 Filename sanitization for platform delivery:
-
 - Sending to Telegram is safest with filenames that do not contain `#`; strip hashtags from the deliverable filename while keeping hashtags in the title/description/caption metadata.
 - Hashtags still belong in the final title text and metadata; only the filesystem filename is stripped for transport compatibility.
 
 Upload-only after explicit approval:
-
 - YouTube, TikTok, or any other upload must never proceed without a clear approval message from the user.
 - Preferred commands/expressions that count as approval: `ok`, `upload`, `approve`, `send`, or similar affirmative statement.
 - When in doubt, ask once and stop.
@@ -399,13 +391,11 @@ When the user approves an upload after Telegram delivery:
 ## Windows ASS/libass subtitle burn failure mode (2026-06-06)
 
 On this Windows host, libass via ffmpeg can accept an ASS file yet still fail to render visible subtitles. Symptoms:
-
 - `Parsed_ass_0` reports `Bad timestamp` repeatedly for every cue.
 - Final MP4 is produced with no visible caption text.
 - This occurs even when the ASS file contains valid quoted timestamps and simple dialogue lines.
 
 Current workarounds:
-
 - Build repo-relative POSIX paths for video, audio, ass, font, and output.
 - Launch ffmpeg with `cwd=REPO` so those relative paths resolve correctly.
 - Do not pass Windows absolute paths in `ass=` or `fontsdir=`. The ffmpeg/libass build on this host rejects them with `No option name near 'C:/Users/...'`.
@@ -417,7 +407,6 @@ Current workarounds:
 When the builder work directory is under `videos/<slug>/`, build the subtitle filter path from repo-relative POSIX paths and run ffmpeg with `cwd=REPO`. Do not use absolute Windows paths inside `subtitles=...` or `fontsdir=...` on this host — the ffmpeg 8.1.1 Windows build misparses absolute paths and emits `No option name near 'C:/Users/...'`, causing subtitle burn to abort.
 
 Working pattern (single-pass, repo-relative paths, `cwd=REPO`):
-
 ```python
 ass_rel = ass.relative_to(REPO).as_posix()
 font_rel = (font_dir or DEFAULT_FONT_DIR).relative_to(REPO).as_posix()
@@ -438,12 +427,10 @@ res = run(cmd, cwd=REPO)
 ```
 
 Known-bad patterns on this host:
-
 - `subtitles='C:/Users/.../captions.ass':fontsdir='C:/Users/.../fonts'` → parser error `No option name near 'C:/Users/...'`
 - `ass='videos/<slug>/captions.ass':fontsdir='assets/fonts/<slug>'` with `cwd=work` → also fails because the relative path is resolved from `work`, not from `REPO`
 
 Frame verification rule:
-
 - Inspect a frame at a timestamp where a cue is known to be active. Checking an arbitrary timestamp commonly produces a false "no captions" result.
 - Always verify subtitle presence at an active cue timestamp after render, not only file duration/size.
 
@@ -452,25 +439,21 @@ Frame verification rule:
 All project source code must live in the project root tree, not in asset or output folders.
 
 Required tree:
-
 - Project root: `C:\Users\qthas\Programming\Belajar\YouTube\MashButtonGaming`
 - Source code: `src/`
 - Assets/output: `videos/`, `assets/`
 
 Rules:
-
 - All `.py` and `.sh` source files belong under `src/` by default.
 - Do not place source files under `videos/`, the repo root unless they are the canonical entrypoint, or any folder that also stores rendered assets.
 - If script placement is ambiguous, prefer `src/scripts/` or another explicit `src/` subfolder.
 
 Why:
-
 - Asset/output folders such as `videos/` change with each project run.
 - Stray source files in output folders cause path collisions, stale hardcoded paths, and accidental execution of outdated session scripts during rebuilds.
 - Surfaces rules early via `find` to avoid working from bad cwd conventions.
 
 ## Subtitle placement guide
-
 User preference: subtitles must be visible and readable on a 9:16 short.
 
 - Visibility is the ONLY success criterion. If a build produces no visible captions, treat it as a failure regardless of whether ffmpeg exited successfully.
@@ -484,7 +467,6 @@ User preference: subtitles must be visible and readable on a 9:16 short.
 If the user supplies a font archive (e.g. `C:\\\\Users\\<user>\\Downloads\\<FontName>\\Font.zip`), treat it as the intended subtitle font for that render.
 
 Requirements:
-
 - Font zip contents must be extracted under the project at `assets/fonts/<font-slug>/`.
 - In `captions.ass`, set `Fontname=<Fontname>` from the actual font file family metadata (do not guess).
 - Set `fontsdir=<project>/assets/fonts/<font-slug>` so ffmpeg/libass can resolve the file in WSL.
@@ -492,13 +474,10 @@ Requirements:
 - When the font is clearly a display or comic font, avoid bottom flush; raise `MarginV` if needed for safe-area visibility.
 
 ### Whoosh font setup example
-
 ```bash
 unzip -o 'C:/Users/<user>/Downloads/Whoosh-Font.zip' -d "<project>/assets/fonts/whoosh"
 ```
-
 Then include it in the WSL render:
-
 ```bash
 ffmpeg -y -i clips/reordered.mp4 -i audio/voiceover.mp3 \
   -filter_complex '[0:v]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,subtitles=captions/captions.ass:fontsdir=assets/fonts/whoosh[v]' \
@@ -506,11 +485,9 @@ ffmpeg -y -i clips/reordered.mp4 -i audio/voiceover.mp3 \
 ```
 
 ## Clip assembly rule
-
 Use fixed-length trailer chunks with randomized start offsets, then assemble them in extracted order to match narration length exactly. Do not shuffle chunk order after extraction.
 
 Requirements:
-
 - Split the full verified trailer into **exact fixed-length chunks**; default chunk size for this user is **5 seconds** unless overridden.
 - Do **not** extract segments sequentially from start=0. Pick a random start time across the full source duration for each chunk so the edit doesn't play through the trailer linearly.
 - Keep chunks in the order they were extracted; do **not** shuffle the segment list before concatenation.
@@ -519,7 +496,6 @@ Requirements:
 - Verify `reordered.mp4` duration matches target before render.
 
 ### User preference note
-
 When reordering or concating loaded chunks, do not reconstruct the entire trailer if only one chunk is missing or needs replacement. Use in-place replacement at the exact load position so fewer chunks are re-encoded and the change stays minimal.
 
 ## WSL render script invocation rule
@@ -527,7 +503,6 @@ When reordering or concating loaded chunks, do not reconstruct the entire traile
 Render scripts that use positional parameters or contain `'` characters must be invoked by absolute POSIX path through WSL.
 
 Requirements:
-
 - Write WSL scripts using forward slashes and paths under `/mnt/c/Users/<user>/...`.
 - From Windows, invoke as: `wsl -d Ubuntu bash <absolute POSIX script path>`.
 - If bash returns `script: No such file or directory`, verify the WSL-side path by running `wsl ... ls <path>` before editing.
@@ -569,7 +544,6 @@ Keep the script concise — under 150 words — while still preserving the requi
 ## Editorial log updates after successful upload
 
 After every successful YouTube upload:
-
 - Add the story to `editorial_state.json` `used_stories`.
 - Increment the corresponding date in `daily_uploads`.
 - Do this immediately after confirming the upload returned a valid video response.
@@ -588,7 +562,6 @@ Use one long narration line without internal line breaks, but keep punctuation m
 When splitting trailers into 5-second pieces, do not extract them linearly from `ss=0`. Use a random start per segment so the edit does not play through the source sequentially.
 
 Requirements:
-
 - Source trailer duration is read with `ffprobe`.
 - For each segment: choose a random start between `0` and `video_duration - segment_duration`.
 - If `video_duration < segment_duration`, allow reuse from earlier segments, but prefer spacing across the source. Do not just loop from `ss=0` repeatedly unless the user explicitly asks.
@@ -603,11 +576,9 @@ Use this exact subtitle structure for every generated Short:
 - Closing engagement sentence: must start with `but what do you think?` and the same sentence must end with a question mark.
 
 Correct:
-
 - `Battlefield 6 Season 3 Blastpoint is almost here and here's what you need to know. ... but what do you think? Will Blastpoint bring Battlefield 6 back to the top of the shooter list?`
 
 Incorrect:
-
 - Separating the bridge into its own sentence.
 - Closing with anything that does not start with `but what do you think?`.
 - Closing without a trailing `?`.
@@ -617,7 +588,6 @@ The scheduler prompt and persistent memory are the source of truth for this copy
 ## Project portability/GitHub readiness
 
 Target machine-independent operation with minimal Hermes dependency:
-
 - Capture executable commands in `README.md` and `docs/PIPELINE.md`.
 - Keep absolute host-specific paths to a minimum; project-relative paths are preferred.
 - Document nonstandard installs, such as WSL Ubuntu render path and custom fonts under `assets/fonts/<slug>/`.
@@ -655,14 +625,12 @@ Always verify the selected YouTube video is downloadable before building.
 ## TTS options
 
 ### Edge-TTS (preferred)
-
 - **Edge-TTS**: default for new builds using `C:\Users\qthas\AppData\Roaming\Python\Python313\Scripts\edge-tts.exe`.
 - Current default voice: **`en-US-BrianMultilingualNeural`** at **`+25%`** rate.
 - Allow voice overrides from environment/config if the user requests a different voice, but do not hardcode other voice defaults.
 - This host has had issues with some Piper models sounding robotic/repetitive for short-form narration. Keep Edge-TTS as the default TTS unless the user explicitly requests Piper.
 
 ### Piper TTS
-
 - **Secondary local TTS for this host**: install Piper TTS under a dedicated WSL venv.
 - Only generate voiceovers with Piper when explicitly requested by the user.
 - Setup commands:
@@ -740,7 +708,6 @@ Limit to news/topics from the last 3 days only. The same game may be reused acro
 Drop all re-encoding for chunk extraction, concat, and trim to eliminate timeout failures on large trailers.
 
 Working ffmpeg commands:
-
 ```bash
 # Chunk extraction (stream copy, drop audio)
 ffmpeg -y -ss <start> -i trailer_full.mp4 -t <5.0> -c copy -an part_000.mp4
@@ -753,7 +720,6 @@ ffmpeg -y -i reordered.mp4 -t <duration> -c copy reordered.trimmed.mp4
 ```
 
 Only the final subtitle-burned render re-encodes:
-
 ```bash
 ffmpeg -y -i clips/reordered.mp4 -i audio/voiceover.mp3 \
   -filter_complex '[0:v]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,ass=captions.ass:fontsdir=assets/fonts/whoosh[v]' \
@@ -773,7 +739,6 @@ MashButtonGaming uses a lightweight editorial state tracker instead of full auto
 - `shorts-news-cleanup`: daily at 03:00, removes `tmp` at project root and `videos/tmp`, plus builder temp folders under `videos/` except `videos/TO_UPLOAD`
 
 State check commands:
-
 ```bash
 python src/editorial_state.py count
 python src/editorial_state.py check "<TITLE>" "<URL>"
@@ -781,7 +746,6 @@ python src/editorial_state.py mark "<TITLE>" "<URL>"
 ```
 
 Policy signals implemented in the scheduler prompt:
-
 - Coverage: Military Shooter, Tactical FPS, Extraction Shooter news
 - Primary franchises: Battlefield, Call of Duty, Escape from Tarkov, Rainbow Six Siege
 - News age limit: last 72 hours only
@@ -802,12 +766,10 @@ Use a multi-pass matcher instead of a single best-score scan to prevent off-sync
 3. **Best-score fallback** — scan a slightly wider window (`fuzzy_window=8`); accept the best match only if score >= `0.8`.
 
 When a match is found:
-
 - Use the matched token’s own timing, bounded to the next token start minus `0.02` when possible.
 - Advance the cursor to `match_idx + 1`.
 
 When no match is found:
-
 - Use the timing of the token at the current cursor position.
 - Advance the cursor by exactly `+1`.
 
@@ -816,7 +778,6 @@ This preserves strict 1:1 token consumption and avoids drift that caused phrase-
 ## STT typo normalization rule
 
 Use dynamic fuzzy matching for STT token alignment instead of any hardcoded correction list or external mapping file:
-
 - Match subtitle text words against faster-whisper word timestamps using `difflib.SequenceMatcher` similarity.
 - Normalize both sides to lowercase alphanumeric before scoring.
 - Scan a small window (`window=10` tokens) from the current cursor forward.
@@ -864,7 +825,6 @@ This avoids the known failure mode where `fans-off-guard` or merged tokens misma
 ## Single-game rule
 
 Each short must cover exactly one game or topic.
-
 - Script text, title, trailer, hashtags, and captions must all match that same single game.
 - Do not mention or compare other games/topics when the selected footage and topic are for only one title.
 
@@ -885,7 +845,6 @@ Built ≠ delivered.
 "Delivered" means platform send actually completed, not that file creation succeeded.
 
 ## Deliverable verification sequence
-
 Before reporting done or claiming "delivered":
 
 1. Confirm the final MP4 exists in videos/TO_UPLOAD/ with the exact title-derived filename.
@@ -897,7 +856,6 @@ Before reporting done or claiming "delivered":
 Treat an MP4 present in TO_UPLOAD as a local build artifact. Delivery is a separate phase and must be reported with the actual send status, not conflated with file existence.
 
 When `send_message` with a `MEDIA:/absolute/path/to/video.mp4` attachment fails on Telegram:
-
 - Do not retry the exact same call. The failures are consistent and add noise.
 - The warning `Failed to send media <path>: Timed out` means the adapter reached the upload phase and then stalled before completion.
 - The warning `Skipping unsafe MEDIA directive path` means the path was rejected before reaching the network upload.
