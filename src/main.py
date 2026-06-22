@@ -33,6 +33,7 @@ def main() -> None:
     ap.add_argument("--youtube", required=True, help="Trailer YouTube URL")
     ap.add_argument("--title", required=True, help="Exact title / filename stem")
     ap.add_argument("--subtitle", required=True, help="TTS/subtitle text (50-150 words)")
+    ap.add_argument("--cookies-from-browser", help="Use with --cookies-from-browser <browser> to authenticate")
     shuffle_group = ap.add_mutually_exclusive_group()
     shuffle_group.add_argument(
         "--shuffle",

@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 
 from yt_dlp import YoutubeDL
-
 from config import REPO
 from utils import probe_duration
 
@@ -15,11 +14,10 @@ class MediaExtractionError(RuntimeError):
 
 def _build_ytdlp_http_headers(url: str, user_agent: str) -> dict:
     return {
-        "User-Agent": user_agent,
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "*/*",
         "Accept-Language": "en-US,en;q=0.9",
-        "Referer": url,
-        "Origin": "https://www.youtube.com",
+        "Referer": "https://www.youtube.com/",
     }
 
 
@@ -28,11 +26,14 @@ def download_trailer(url: str, dest: Path) -> dict:
     outtmpl = str(dest)
     attempts = [
         {
-            "format": "bestvideo[ext=mp4][height<=1080][height>=720]+bestaudio[ext=m4a]/best[ext=mp4][height<=1080][height>=720]/best[ext=mp4][height<=1080]/best[ext=mp4]/best"
+            "format": "bestvideo[ext=mp4][height<=1080][height>=720]+bestaudio[ext=m4a]/best[ext=mp4][height<=1080][height>=720]/best[ext=mp4][height<=1080]/best[ext=mp4]/best",
         },
         {
             "format": "bestvideo[ext=mp4][height<=1080][height>=720]+bestaudio[ext=m4a]/best[ext=mp4][height<=1080][height>=720]/best[ext=mp4][height<=1080]/best[ext=mp4]/best",
             "extractor_args": {"youtube": {"player_client": ["web"]}},
+            "headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            },
         },
         {
             "format": "bestvideo[ext=mp4][height<=1080][height>=720]+bestaudio[ext=m4a]/best[ext=mp4][height<=1080][height>=720]/best[ext=mp4][height<=1080]/best[ext=mp4]/best",
