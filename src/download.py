@@ -50,8 +50,8 @@ def download_trailer(url: str, dest: Path) -> dict:
             "no_warnings": True,
             "retries": 2,
             "fragment_retries": 2,
-            "socket_timeout": 15,
-            "timeout": 60,
+            "socket_timeout": 900,
+            "timeout": 900,
             "merge_output_format": "mp4",
             **attempt,
         }
