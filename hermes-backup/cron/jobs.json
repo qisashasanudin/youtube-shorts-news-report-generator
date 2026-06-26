@@ -3,9 +3,13 @@
     {
       "id": "7f2a9212bbb8",
       "name": "gaming-news-search",
-      "prompt": "Search for the latest gaming news.\nProvide a list of up to 10 items. For each item, include:\n- Title\n- Date Created\n- Summary\n- URL\n\nIf fewer than 10 results are available, provide all available ones. Use high-quality sources like IGN, PC Gamer, GameSpot, and official developer blogs.",
-      "skills": [],
-      "skill": null,
+      "prompt": "## Required News Report Generation Workflow\nYou are an expert gaming journalist tasked with generating a highly reliable news report from the web that must follow these mandatory steps. Do not skip any step and strictly use local tools/libraries where possible.\n\n### 1. Search Phase (Discovery)\nFirst, execute `web_search(query=\"latest major video game headlines\")` to find up-to-date and authoritative URLs for gaming news. Limit the results to a maximum of 5 unique URLs that point directly to article content. Record these URLs in your scratchpad for the next step.\n\n### 2. Extraction Phase (Mandatory Content Gathering)\nSecond, use the `terminal` tool to run `curl -sL <URL:from_step_1>`. The `-sL` flags suppress errors and follow redirects, fetching the raw HTML source code of the article page. You must execute this command for *every single URL* found in Step 1.\n\n### 3. Parsing Phase (Reliable Content Cleanup)\nThird, use `execute_code` with Python libraries (`requests`, `beautifulsoup4`) to process the raw HTML output from all successful `curl` commands. The goal is to parse the resulting HTML and extract clean, readable content for each article. Ensure you handle potential encoding issues or non-standard structures gracefully.\n\n### 4. Analysis and Output Phase (Reporting)\nFinally, combine the structured data extracted in Step 3. For each unique article found, you must reliably report:\n1.  **Title:** The main headline of the article.\n2.  **Summary:** A concise summary (max 150 words).\n3.  **URL & Status:** The full, linkable URL where the article was found.\n4.  **Date:** The date the information was published or last updated (if available in the text; otherwise, use 'Date Unknown').\n\nYou must output exactly 10 distinct, high-quality stories formatted precisely as follows:\n```markdown\n### [Title of Article]\n*Summary:* A detailed summary based on the extracted text.\n*URL:* [Full URL to article](https://full/link), *Date:* YYYY-MM-DD\n\n---\n```\nEnsure your final output is structured using ALL CAPS headings and is designed for immediate posting as a polished report. The primary goal is complete data extraction using only terminal/shell commands and Python parsing, avoiding external cloud APIs where possible.",
+      "skills": [
+        "web_search",
+        "terminal",
+        "execute_code"
+      ],
+      "skill": "web_search",
       "model": null,
       "provider": null,
       "base_url": null,
@@ -20,19 +24,19 @@
       "schedule_display": "0 9,13,17,21 * * *",
       "repeat": {
         "times": null,
-        "completed": 11
+        "completed": 14
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-06-20T18:24:37.935018+07:00",
-      "next_run_at": "2026-06-23T09:00:00+07:00",
-      "last_run_at": "2026-06-22T21:17:10.091962+07:00",
+      "next_run_at": "2026-06-26T13:00:00+07:00",
+      "last_run_at": "2026-06-23T21:03:44.240324+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
-      "deliver": "discord",
+      "deliver": "telegram",
       "origin": {
         "platform": "discord",
         "chat_id": "1517551596672778340",
@@ -63,15 +67,15 @@
       "schedule_display": "0 * * * *",
       "repeat": {
         "times": null,
-        "completed": 29
+        "completed": 42
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-06-20T21:43:33.391774+07:00",
-      "next_run_at": "2026-06-23T00:00:00+07:00",
-      "last_run_at": "2026-06-22T22:47:22.942960+07:00",
+      "next_run_at": "2026-06-26T12:00:00+07:00",
+      "last_run_at": "2026-06-25T12:00:51.169659+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -113,7 +117,7 @@
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-06-21T14:30:43.383519+07:00",
-      "next_run_at": "2026-06-23T15:00:00+07:00",
+      "next_run_at": "2026-06-26T15:00:00+07:00",
       "last_run_at": "2026-06-22T21:00:16.868672+07:00",
       "last_status": "ok",
       "last_error": null,
@@ -130,5 +134,5 @@
       "fire_claim": null
     }
   ],
-  "updated_at": "2026-06-22T23:00:19.196962+07:00"
+  "updated_at": "2026-06-26T11:00:38.083805+07:00"
 }

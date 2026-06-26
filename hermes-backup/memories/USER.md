@@ -13,3 +13,5 @@ The hermes backup directory is located in the project repository at `/Users/qisa
 User prefers using changelogs and patchnotes as primary sources for game news and updates.
 §
 Include Title, Summary, URL, and Date for all gaming news/reports.
+§
+User prefers concise, factual answers; avoid filler content and overly long explanations unless necessary.
